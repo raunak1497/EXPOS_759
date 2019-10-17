@@ -39,6 +39,7 @@ loadi(70,12);
 SP = 82*512 - 1;
 
 //BOOT MODULE CALL
+breakpoint;
 call BOOT_MODULE;
 
 PTBR=PAGE_TABLE_BASE;

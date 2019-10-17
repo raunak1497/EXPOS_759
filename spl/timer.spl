@@ -13,8 +13,8 @@ process_table_entry=PROCESS_TABLE + currPID*16;
 [process_table_entry+4]=READY;
 
 //print "Before Module";
+breakpoint;
 call MOD_5;
-//breakpoint;
 //print "After Module";
 
 restore;

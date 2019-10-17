@@ -1,19 +1,44 @@
+//print "mod4";
+
 alias funcnum R1;
 alias currPID R2;
 
-if(funcnum==3)then
-	multipush(R1,R2,R3);
+if(funcnum==TERMINAL_WRITE)then
+	backup;
 	R1=8;
 	R2=[SYSTEM_STATUS_TABLE+1];
 	call MOD_0;
-	multipop(R1,R2,R3);
+	restore;
 	print R3;
-	multipush(R1,R2,R3);
+
+	backup;
 	R1=9;
 	R2=[SYSTEM_STATUS_TABLE+1];
 	call MOD_0;
-	multipop(R1,R2,R3);
-	return;
-else
+	restore;
+
 	return;
 endif;
+if(funcnum==TERMINAL_READ)then
+	backup;
+	R1=8;
+	R2=[SYSTEM_STATUS_TABLE+1];
+	//breakpoint;
+	call MOD_0;
+	restore;
+	read;
+	[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+4]=WAIT_TERMINAL;
+
+	multipush(R0,R1,R2,R3);
+	//breakpoint;
+	call MOD_5;
+	multipop(R0,R1,R2,R3);
+	[[PTBR+2*((R3)/512)]*512+((R3)%512)]=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+8];
+
+	return;
+
+endif;
+
+return;
+
+

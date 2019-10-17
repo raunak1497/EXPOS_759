@@ -1,12 +1,15 @@
+//print "mod_0";
+
 alias funcnum R1;
 alias currPID R2;
 alias Counter R3;
 
 if(funcnum==8)then
-	print "Accquire terminal";
+	//print "Accquire terminal";
 	while([TERMINAL_STATUS_TABLE]!=0) do
 		[PROCESS_TABLE+16*currPID+4]=WAIT_TERMINAL;
 		multipush(R1,R2,R3,R4);
+		breakpoint;
 		call MOD_5;
 		multipop(R1,R2,R3,R4);
 	endwhile;
