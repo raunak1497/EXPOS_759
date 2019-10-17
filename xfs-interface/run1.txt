@@ -1,0 +1,13 @@
+load --idle $HOME/myexpos/expl/Samples/idle.xsm
+load --init $HOME/myexpos/expl/Samples/sort.xsm
+load --exhandler ../spl/haltprog.xsm
+load --int=timer ../spl/timer_16.xsm
+load --int=6 ../spl/interrupt_6_16.xsm
+load --int=7 ../spl/int7_16.xsm
+load --int=10 ../spl/int10_16.xsm
+load --int=console ../spl/console_16.xsm
+load --module 0 $HOME/myexpos/spl/mod_0_16.xsm
+load --module 4 $HOME/myexpos/spl/module_4_16.xsm
+load --module 5 $HOME/myexpos/spl/mod5_16.xsm
+load --module 7 $HOME/myexpos/spl/boot_16.xsm
+load --os $HOME/myexpos/spl/os_16.xsm

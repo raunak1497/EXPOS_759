@@ -1,0 +1,14 @@
+int main()
+{
+	decl
+	int temp;
+	str P;
+	enddecl
+	begin
+
+	temp=exposcall("Write",-2 , "Enter File");
+	temp=exposcall("Read",-1 , P);
+	temp=exposcall("Exec",P);
+	return 0;
+	end
+}

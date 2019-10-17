@@ -1,0 +1,60 @@
+//print "In Module 5";
+alias currPID R0;
+currPID=[SYSTEM_STATUS_TABLE+1];
+
+//[SP]=BP;
+alias process_table_entry R4;
+
+process_table_entry=PROCESS_TABLE+currPID*16;
+//print currPID;
+[process_table_entry+12]=SP%512;
+[process_table_entry+14]=PTBR;
+[process_table_entry+15]=PTLR;
+
+alias Counter R1;
+Counter=0;
+
+alias newPID R2;
+newPID=currPID+1;
+
+alias new_process_table R3;
+
+while(newPID!=currPID)do
+	new_process_table=PROCESS_TABLE+newPID*16;
+	if([new_process_table+4]==CREATED || [new_process_table+4]==READY)then
+		break;
+	endif;
+	newPID=newPID+1;
+	if(newPID==16)then
+		newPID=1;
+	endif;
+endwhile;
+
+if(newPID==currPID)then
+	new_process_table=PROCESS_TABLE+newPID*16;
+	if([new_process_table+4]==CREATED || [new_process_table+4]==READY)then
+		newPID=currPID;
+	else
+		newPID=0;
+		halt;
+	endif;
+endif;
+
+new_process_table=PROCESS_TABLE+newPID*16;
+
+SP=[new_process_table+11]*512+[new_process_table+12];
+PTBR=[new_process_table+14];
+PTLR=[new_process_table+15];
+
+[SYSTEM_STATUS_TABLE+1]=newPID;
+
+if([new_process_table+4] == CREATED)then
+	[new_process_table+4]=RUNNING;
+	SP=[new_process_table+13];
+	[new_process_table+9]=0;
+	ireturn;
+endif;
+
+[new_process_table+4]=RUNNING;
+//BP = [SP];
+return;

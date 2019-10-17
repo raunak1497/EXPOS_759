@@ -1,0 +1,18 @@
+load --init $HOME/myexpos/expl/Samples/exec.xsm
+load --idle $HOME/myexpos/expl/Samples/idle.xsm
+load --exec $HOME/myexpos/expl/Samples/bubblesort.xsm
+load --exhandler ../spl/haltprog.xsm
+load --int=timer ../spl/timer_18.xsm
+load --int=6 ../spl/int6_18.xsm
+load --int=7 ../spl/int7_18.xsm
+load --int=9 ../spl/int9_18.xsm
+load --int=10 ../spl/int10_18.xsm
+load --int=console ../spl/console_18.xsm
+load --int=disk ../spl/disk_18.xsm
+load --module 0 $HOME/myexpos/spl/mod0_18.xsm
+load --module 1 $HOME/myexpos/spl/mod1_18.xsm
+load --module 2 $HOME/myexpos/spl/mod2_18.xsm
+load --module 4 $HOME/myexpos/spl/mod4_18.xsm
+load --module 5 $HOME/myexpos/spl/mod5_18.xsm
+load --module 7 $HOME/myexpos/spl/boot_18.xsm
+load --os $HOME/myexpos/spl/os_18.xsm

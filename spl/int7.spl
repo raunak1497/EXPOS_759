@@ -1,0 +1,37 @@
+alias userSP R0;
+[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1])*16+13]=SP;
+[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1])*16+9]=5;
+userSP=SP;
+SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11]*512-1;
+backup;
+
+alias physicalPageNum R1;
+alias offset R2;
+alias fileDescPhysicalAddr R3;
+physicalPageNum = [PTBR+2*((userSP-4)/512)];
+offset=(userSP-4)%512;
+fileDescPhysicalAddr=(physicalPageNum*512)+offset;
+alias fileDescriptor R4;
+fileDescriptor=[fileDescPhysicalAddr];
+
+
+if(fileDescriptor != -2) then
+	alias physicalAddrRetVal R5;
+	physicalAddrRetVal=([PTBR+2*((userSP-1)/512)]*512 +(userSP-1)%512);
+	[physicalAddrRetVal]=-1;
+else
+	alias word R5;
+	word=[[PTBR+ 2*((userSP-3)/512)]*512 + ((userSP-3)%512)];
+	breakpoint;
+	print word;
+	alias physicalAddrRetVal R6;
+	physicalAddrRetVal=([PTBR+2*((userSP-1)/512)]*512 +(userSP-1)%512);
+	[physicalAddrRetVal]=0;
+endif;
+restore;
+
+SP=userSP;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 9]=0;
+
+SP=[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16)+ 13];
+ireturn;

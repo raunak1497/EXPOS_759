@@ -1,0 +1,41 @@
+decl
+int i,j,arr[50],temp,n;
+enddecl
+
+	
+int main()
+{
+	begin
+	read(n);
+
+	i=0;
+	while(i<n)do
+		read(arr[i]);
+		i=i+1;
+	endwhile;
+
+	breakpoint;
+
+	i=0;
+	while(i<n)do
+		j=i+1;
+		while(j<n)do
+			if(arr[i]>arr[j])then
+			temp=arr[i];
+			arr[i]=arr[j];
+			arr[j]=temp;
+			endif;
+			j=j+1;
+		endwhile;
+		i=i+1;
+	endwhile;
+		
+	i=0;
+	while(i<n)do
+		write(arr[i]);
+		i=i+1;
+	endwhile;
+
+	return 0;
+	end
+}
