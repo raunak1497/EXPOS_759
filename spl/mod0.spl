@@ -1,23 +1,40 @@
-//print "mod_0";
-
 alias funcnum R1;
 alias currPID R2;
 alias Counter R3;
 
+//accquire disk
+if(funcnum==3)then
+
+//disk busy invoke scheduler
+while([DISK_STATUS_TABLE]==1)do
+		[PROCESS_TABLE+currPID*16+4]=WAIT_DISK;
+		backup;
+		call MOD_5;
+		restore;
+endwhile;
+
+//locking the disk table
+	[DISK_STATUS_TABLE]=1;
+	[DISK_STATUS_TABLE+4]=currPID;
+
+endif;
+
+
+//accquire terminal
 if(funcnum==8)then
 	//print "Accquire terminal";
 	while([TERMINAL_STATUS_TABLE]!=0) do
 		[PROCESS_TABLE+16*currPID+4]=WAIT_TERMINAL;
-		multipush(R1,R2,R3,R4);
-		breakpoint;
+		backup;
 		call MOD_5;
-		multipop(R1,R2,R3,R4);
+		restore;
 	endwhile;
 	[TERMINAL_STATUS_TABLE]=1;
 	[TERMINAL_STATUS_TABLE+1]=currPID;
 	return;
 endif;
 
+//release treminal
 if(funcnum==9)then
 	if(currPID==[TERMINAL_STATUS_TABLE+1])then
 		[TERMINAL_STATUS_TABLE]=0;

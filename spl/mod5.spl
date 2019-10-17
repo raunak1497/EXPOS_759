@@ -1,8 +1,8 @@
-//print "In Module 5";
 alias currPID R0;
 currPID=[SYSTEM_STATUS_TABLE+1];
 
 //[SP]=BP;
+multipush(BP);
 alias process_table_entry R4;
 
 process_table_entry=PROCESS_TABLE+currPID*16;
@@ -35,12 +35,13 @@ PTLR=[new_process_table+15];
 [SYSTEM_STATUS_TABLE+1]=newPID;
 
 if([new_process_table+4] == CREATED)then
+	BP = [[new_process_table + 11] * 512];
 	[new_process_table+4]=RUNNING;
 	SP=[new_process_table+13];
 	[new_process_table+9]=0;
 	ireturn;
 endif;
-
 [new_process_table+4]=RUNNING;
+multipop(BP);
 //BP = [SP];
 return;

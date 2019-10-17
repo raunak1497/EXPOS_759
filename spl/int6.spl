@@ -1,4 +1,3 @@
-//print "int6";
 [PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=7;
 
 alias userSP R0;

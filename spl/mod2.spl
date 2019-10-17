@@ -1,8 +1,6 @@
-print "mod2";
 alias funcNum R1;
 alias pageNo R2;
 
-//get free page
 if(funcNum==1)then
 
 	//increment wait_mem
@@ -37,7 +35,7 @@ if(funcNum==1)then
 	return;
 endif;
 
-//release page
+
 if(funcNum==2)then
 
 	[MEMORY_FREE_LIST+pageNo]=[MEMORY_FREE_LIST+pageNo]-1;
@@ -60,7 +58,3 @@ if(funcNum==2)then
 endif;
 
 return;
-
-
-
-

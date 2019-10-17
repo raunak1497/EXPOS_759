@@ -1,4 +1,3 @@
-print "mod1";
 alias funcNum R1;
 alias currPID R2;
 
@@ -53,7 +52,6 @@ counter=4;
 while(counter<20)do
 		if([PTBR+counter]!=-1)then
 
-//release the page 
 			backup;
 			R1=2;
 			R2=[PTBR+counter];

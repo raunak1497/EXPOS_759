@@ -1,0 +1,24 @@
+[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13]=SP;
+SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11]*512-1;
+
+backup;
+
+[DISK_STATUS_TABLE]=0;
+
+//change wait disk to ready
+alias counter R1;
+counter=1;
+
+while(counter<16)do
+	if([PROCESS_TABLE+(counter*16)+4]==WAIT_DISK)then
+		[PROCESS_TABLE+(counter*16)+4]=READY;
+	endif;
+	counter=counter+1;
+endwhile;
+
+restore;
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 9]=0;
+
+SP= [PROCESS_TABLE + (16 * [SYSTEM_STATUS_TABLE + 1]) + 13];
+ireturn;

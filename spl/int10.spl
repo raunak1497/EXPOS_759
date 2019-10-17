@@ -1,4 +1,5 @@
-//print "IN INT 10";
+[PROCESS_TABLE + (16 * [SYSTEM_STATUS_TABLE + 1]) + 13] = SP;
+SP = [PROCESS_TABLE + (16 * [SYSTEM_STATUS_TABLE + 1]) + 11] * 512 - 1;
 alias currPID R0;
 currPID=[SYSTEM_STATUS_TABLE+1];
 
@@ -24,4 +25,3 @@ endwhile;
 
 halt;
 ireturn;
-

@@ -1,8 +1,9 @@
-//print "mod4";
-
 alias funcnum R1;
 alias currPID R2;
+alias pageNo R3;
+alias blockNo R4;
 
+//terminal write 3
 if(funcnum==TERMINAL_WRITE)then
 	backup;
 	R1=8;
@@ -19,6 +20,8 @@ if(funcnum==TERMINAL_WRITE)then
 
 	return;
 endif;
+
+//terminal read 4
 if(funcnum==TERMINAL_READ)then
 	backup;
 	R1=8;
@@ -29,16 +32,40 @@ if(funcnum==TERMINAL_READ)then
 	read;
 	[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+4]=WAIT_TERMINAL;
 
-	multipush(R0,R1,R2,R3);
+	backup;
 	//breakpoint;
 	call MOD_5;
-	multipop(R0,R1,R2,R3);
+	restore;
 	[[PTBR+2*((R3)/512)]*512+((R3)%512)]=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+8];
 
 	return;
+endif;
 
+//loading disk 2
+if(funcnum==DISK_LOAD)then
+	
+//accquire disk in resource manager 
+	backup;
+	R1=3;
+	R2=currPID;
+	call MOD_0;
+	restore;
+
+//setting up disk table
+	[DISK_STATUS_TABLE]=1;
+	[DISK_STATUS_TABLE+1]=0;
+	[DISK_STATUS_TABLE+2]=pageNo;
+	[DISK_STATUS_TABLE+3]=blockNo;
+	[DISK_STATUS_TABLE+4]=currPID;
+
+//issuing the load statement
+	load(pageNo,blockNo);
+
+//setting status to wait disk 
+[PROCESS_TABLE+currPID*16+4]=WAIT_DISK;
+	backup;
+	call MOD_5;
+	restore;
 endif;
 
 return;
-
-
