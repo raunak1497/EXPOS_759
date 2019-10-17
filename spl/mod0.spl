@@ -2,6 +2,8 @@ alias funcnum R1;
 alias currPID R2;
 alias Counter R3;
 
+breakpoint;
+
 //accquire disk
 if(funcnum==3)then
 

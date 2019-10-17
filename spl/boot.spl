@@ -62,6 +62,13 @@ loadi(60,4);
 loadi(6,19);
 loadi(7,20);
 
+//DISK FREE LIST
+loadi(61,2);
+
+//INODE AND USER TABLE
+loadi(59,3);
+loadi(60,4);
+
 PTBR=PAGE_TABLE_BASE+20;
 
 //LIBRARY
@@ -107,16 +114,17 @@ PTLR=10;
 [TERMINAL_STATUS_TABLE+0]=0;
 
 alias counter R0;
-	counter=2;
+alias i R4;
 
+
+counter=2;
 while(counter<=15)do
 	[PROCESS_TABLE+counter*16 +4]=TERMINATED;
 	counter = counter + 1;
 endwhile;
 
-alias i R4;
+//initialize memory free list
 i=0;
-
 while(i<128)do
 	if(i<83)then
 		[MEMORY_FREE_LIST+i]=1;
@@ -125,8 +133,9 @@ while(i<128)do
 	endif;
 	i=i+1;
 endwhile;
-[SYSTEM_STATUS_TABLE+3]=0;
+
 [SYSTEM_STATUS_TABLE+2]=45;
+[SYSTEM_STATUS_TABLE+3]=0;
 
 //disk status table
 [DISK_STATUS_TABLE]=0;
@@ -143,5 +152,16 @@ while(c<16)do
 	c=c+1;
 endwhile;
 
-//print "In Boot2";
+//initialise disk map table
+i=0;
+while(i<10)do
+	[DISK_MAP_TABLE+10+i]=-1;
+	i=i+1;
+endwhile;
+
+[DISK_MAP_TABLE+10+4]=7;
+[DISK_MAP_TABLE+10+5]=8;
+[DISK_MAP_TABLE+10+6]=-1;
+[DISK_MAP_TABLE+10+7]=-1;
+
 return;

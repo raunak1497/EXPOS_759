@@ -1,6 +1,8 @@
 alias funcNum R1;
 alias pageNo R2;
 
+
+//get free page
 if(funcNum==1)then
 
 	//increment wait_mem
@@ -35,7 +37,7 @@ if(funcNum==1)then
 	return;
 endif;
 
-
+//release page
 if(funcNum==2)then
 
 	[MEMORY_FREE_LIST+pageNo]=[MEMORY_FREE_LIST+pageNo]-1;
@@ -55,6 +57,49 @@ if(funcNum==2)then
 	endif;
 
 	return;
+endif;
+
+alias blockNum R2;
+
+//release block
+if(funcNum==4)then
+	[DISK_FREE_LIST+blockNum]=[DISK_FREE_LIST+blockNum]-1;
+	return;
+endif;
+
+breakpoint;
+
+//get code page
+if(funcNum==5)then
+	alias i R3;
+	alias disk_entry R4;
+	i=0;
+	while(i<16)do
+		disk_entry=DISK_MAP_TABLE+(10*i);
+		alias page R5;
+		page = 4;
+		while(page<8)do
+			if(([disk_entry+page]==blockNum)&& ([PAGE_TABLE_BASE+(i*20)+(2*page)]!=-1))then
+				R0=[PAGE_TABLE_BASE+(i*20)+(2*page)];
+				[MEMORY_FREE_LIST+R0]=[MEMORY_FREE_LIST+R0]+1;
+				return;
+			endif;
+			page=page+1;
+		endwhile;
+		i=i+1;
+	endwhile;
+
+	//if page is not memory
+	R1=GET_FREE_PAGE;//function number
+	call MOD_2;//memory manager
+
+	R1=DISK_LOAD;//function number
+	R3=R0;//page number
+	R4=blockNum;//block number
+	R2=[SYSTEM_STATUS_TABLE+1];//pid
+	call MOD_4;//device manager
+	return;
+
 endif;
 
 return;

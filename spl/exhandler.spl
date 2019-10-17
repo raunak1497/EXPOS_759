@@ -1,0 +1,103 @@
+//backup
+//print "in exhandler";
+//restore;
+
+//setting up the mode flag
+[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+9]=-1;
+
+//switching to kernel mode
+[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13]=SP;
+SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11]*512-1;
+
+breakpoint;
+
+backup;
+multipush(EIP);
+breakpoint;
+
+//illegal instruction
+if(EC==1)then
+	print "IIE";
+	backup;
+	R1=EXIT_PROCESS;
+	R2=[SYSTEM_STATUS_TABLE+1];
+	call MOD_1;//process manager
+	restore;
+	call MOD_5;
+endif;
+
+//illegal memory acess
+if(EC==2)then
+	print "IAE";
+	backup;
+	R1=EXIT_PROCESS;
+	R2=[SYSTEM_STATUS_TABLE+1];
+	call MOD_1;//process manager
+	restore;
+	call MOD_5;
+endif;
+
+//airthmetic exception
+if(EC==3)then
+	print "AE";
+	backup;
+	R1=EXIT_PROCESS;
+	R2=[SYSTEM_STATUS_TABLE+1];
+	call MOD_1;//process manager
+	restore;
+	call MOD_5;
+endif;
+
+if(EC==0)then
+	print "Page Fault";
+//code page fault
+	if((EPN==4)||(EPN==5)||(EPN==6)||(EPN==7))then
+		backup;
+		multipush(EC,EIP,EPN,EMA);
+		R1=GET_CODE_PAGE;
+		R2=[DISK_MAP_TABLE+(10*[SYSTEM_STATUS_TABLE])+EPN];//page number
+		call MOD_2;//memory manager
+		multipop(EC,EIP,EPN,EMA);
+		[PAGE_TABLE_BASE+([SYSTEM_STATUS_TABLE+1]*20)+2*EPN]=R0;
+		[PAGE_TABLE_BASE+([SYSTEM_STATUS_TABLE+1]*20)+2*EPN+1]="1100";
+		restore;
+	endif;
+breakpoint;
+//heap page fault
+	if((EPN==2)|| (EPN==3))then
+	//heap 1 
+		backup;
+		R1=GET_FREE_PAGE;
+		call MOD_2;//memory manager
+		[PAGE_TABLE_BASE+([SYSTEM_STATUS_TABLE+1]*20)+4]=R0;
+		[PAGE_TABLE_BASE+([SYSTEM_STATUS_TABLE+1]*20)+5]="1110";
+		restore;
+
+	//heap 2
+		backup;
+		R1=GET_FREE_PAGE;
+		call MOD_2;//memory manager
+		[PAGE_TABLE_BASE+([SYSTEM_STATUS_TABLE+1]*20)+6]=R0;
+		[PAGE_TABLE_BASE+([SYSTEM_STATUS_TABLE+1]*20)+7]="1110";
+		restore;
+	endif;
+endif;
+
+breakpoint;
+
+//mode flag
+[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+9]=0;
+multipop(EIP);
+
+restore;
+SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13];
+SP=SP+1;
+[[PTBR+(2*(SP/512))]*512+(SP%512)]=EIP;
+ireturn;
+
+
+
+
+
+
+

@@ -39,6 +39,8 @@ endif;
 
 //free page table
 if(funcNum==4)then
+	alias temp R3;
+	alias disk_entry R4;
 
 //Inavalidate library page
 	[PTBR+0]=-1;
@@ -46,26 +48,43 @@ if(funcNum==4)then
 	[PTBR+2]=-1;
 	[PTBR+3]="0000";
 
+disk_entry=DISK_MAP_TABLE+currPID*10;
+breakpoint;
+
+//release block
+while(temp<10)do
+	if(([disk_entry+temp]!=-1)&&(temp==2||temp==3||temp==8||temp==9))then
+		backup;
+		R1=4;//RELEASE BLOCK
+		R2=[disk_entry+temp];//block number
+		call MOD_2; //memory manager
+		restore;
+	endif;
+	[disk_entry+temp]=-1;
+	temp=temp+1;
+endwhile;
+
+breakpoint;
+
 //Release the page	
-alias counter R3;
-counter=4;
-while(counter<20)do
-		if([PTBR+counter]!=-1)then
+temp=4;
+while(temp<20)do
+		if([PTBR+temp]!=-1)then
 
 			backup;
 			R1=2;
-			R2=[PTBR+counter];
+			R2=[PTBR+temp];
 			call MOD_2;
 			restore;
 
-			[PTBR+counter]=-1;
-			[PTBR+counter+1]="0000";
+			[PTBR+temp]=-1;
+			[PTBR+temp+1]="0000";
 
 		endif;
-		counter=counter+2;
+		temp=temp+2;
 endwhile;
 
-	return;
+return;
 endif;
 
 return;

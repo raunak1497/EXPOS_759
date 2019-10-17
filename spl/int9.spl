@@ -1,7 +1,9 @@
-[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13]=SP;
+//EXEC SYSTEM CALL(INT 9)
 
 alias userSP R0;
 userSP=SP;
+
+[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13]=SP;
 
 SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11]*512-1;
 
@@ -42,14 +44,16 @@ endif;
 alias exitPID R4;
 exitPID=[SYSTEM_STATUS_TABLE+1];
 
-//calling exit process to terminate current process
+//calling exit process to terminate
+
 backup; 
-R1=3;
+R1=EXIT_PROCESS;
 R2=exitPID;
 call MOD_1;
 restore;
 
 //user area page num deallocated by exit process with same pid
+
 alias pageNum R5;
 pageNum=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11];
 
@@ -71,31 +75,18 @@ SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11]*512-1;
 //seeting page table
 PTBR=PAGE_TABLE_BASE+exitPID*20;
 
+// SETTING THE PAGE TABLE
+
 breakpoint;
-//LIBRARY
+
+//VALIDATE LIBRARY ENTRIES
 [PTBR+0]=63;
 [PTBR+1]="0100";
 [PTBR+2]=64;
 [PTBR+3]="0100";
 
-breakpoint;
-//HEAP
-backup;
-R1=1;
-call MOD_2;
-[PTBR+4]=R0;
-[PTBR+5]="0110";
-restore;
+//VALIDATE STACK ENTRIES
 
-backup;
-R1=1;
-call MOD_2;
-[PTBR+6]=R0;
-[PTBR+7]="0110";
-restore;
-
-
-//STACK
 backup;
 R1=1;
 call MOD_2;
@@ -110,76 +101,68 @@ call MOD_2;
 [PTBR+19]="0110";
 restore;
 
-//CODEPAGES
-alias counter R7;
-counter=8;
+breakpoint;
 
-alias noBlock R8;
-noBlock=0;
+//INVALIDATE HEAP PAGES
+[PTBR+4]=-1;
+[PTBR+5]="0000";
+
+[PTBR+6]=-1;
+[PTBR+7]="0000";
+
+//VALIDATING CODEPAGES
+
+alias inode_POS R6;
+inode_POS=INODE_TABLE+temp*16;
 
 //NO OF CODE PAGES
-while(counter<12)do
-	if([INODE_TABLE+temp*16+counter]==-1)then
-		break;
-	else
-		noBlock=noBlock+1;
-	endif;
-	counter=counter+1;
-endwhile;
 
-backup;
-print noBlock;
-restore;
-
-counter=8;
-
-
-alias k R9;
-k=8;
-alias check R10;
-check = 0;
-breakpoint;
-while(noBlock != 0)do
+if([inode_POS+8]!=-1)then
 	backup;
-	R1=1;
+	R1=GET_CODE_PAGE;
+	R2=[inode_POS+8];
 	call MOD_2;
-	[PTBR+counter]=R0;
-	[PTBR+counter+1]="0100";
+	[PAGE_TABLE_BASE+([SYSTEM_STATUS_TABLE+1]*20)+8]=R0;
+	[PAGE_TABLE_BASE+([SYSTEM_STATUS_TABLE+1]*20)+9]="0100";
 	restore;
+endif;
 
-	breakpoint;
+//invalidate rest of code pages
+[PAGE_TABLE_BASE+([SYSTEM_STATUS_TABLE+1]*20)+10]=-1;
+[PAGE_TABLE_BASE+([SYSTEM_STATUS_TABLE+1]*20)+11]="0000";
+[PAGE_TABLE_BASE+([SYSTEM_STATUS_TABLE+1]*20)+12]=-1;
+[PAGE_TABLE_BASE+([SYSTEM_STATUS_TABLE+1]*20)+13]="0000";
+[PAGE_TABLE_BASE+([SYSTEM_STATUS_TABLE+1]*20)+14]=-1;
+[PAGE_TABLE_BASE+([SYSTEM_STATUS_TABLE+1]*20)+15]="0000";
 
-	//disk load
-	backup;
-	R1=2;
-	R2=[SYSTEM_STATUS_TABLE + 1];
-	R4 = [INODE_TABLE + (temp * 16) + 8 + check];
-	R3 = [PTBR + counter];
-	call MOD_4;
-	restore;
-	
-	breakpoint;
-
-	counter=counter+2;
-	check = check + 1;
-	k=k+1;
-	noBlock=noBlock-1;
+//INITIALIZE PER PROCESS TABLE
+alias offset R7;
+offset=496;
+while(offset<512)do
+	[pageNum*512+offset]=-1;
+	offset=offset+2;
 endwhile;
 
-//alias f R10;
-//f=[PROCESS_TABLE + (16 * exitPID) + 11] * 512 + 511;
+breakpoint;
 
-//counter=0;
-//while(counter<16)do
-//	[f-counter]=-1;
-//	counter=counter+1;
-//endwhile;
+//INITIALIZE DISK STATUS TABLE
+offset=0;
+while(offset < 10)do
+	[DISK_MAP_TABLE+(10*[SYSTEM_STATUS_TABLE+1])+offset]=-1;
+	offset=offset+1;
+endwhile;
+
+[DISK_MAP_TABLE+(10*[SYSTEM_STATUS_TABLE+1])+4]=[inode_POS+8];//map block 1
+[DISK_MAP_TABLE+(10*[SYSTEM_STATUS_TABLE+1])+5]=[inode_POS+9];//map block 2
+[DISK_MAP_TABLE+(10*[SYSTEM_STATUS_TABLE+1])+6]=[inode_POS+10];//map block 3
+[DISK_MAP_TABLE+(10*[SYSTEM_STATUS_TABLE+1])+7]=[inode_POS+11];//map block 4
+
 
 
 [[PTBR+16]*512]=[[PTBR+8]*512+1];
 SP=8*512;
 
-[PROCESS_TABLE+(exitPID*16)+9]=0;
-breakpoint;
+[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+9]=0;
+PTBR=PAGE_TABLE_BASE+(20*[SYSTEM_STATUS_TABLE+1]);
 
 ireturn;
