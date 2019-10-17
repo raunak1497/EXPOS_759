@@ -11,35 +11,21 @@ process_table_entry=PROCESS_TABLE+currPID*16;
 [process_table_entry+14]=PTBR;
 [process_table_entry+15]=PTLR;
 
-alias Counter R1;
-Counter=0;
+alias counter R1;
+counter = currPID + 1;
 
 alias newPID R2;
-newPID=currPID+1;
+newPID = 0;
 
-alias new_process_table R3;
-
-while(newPID!=currPID)do
-	new_process_table=PROCESS_TABLE+newPID*16;
-	if([new_process_table+4]==CREATED || [new_process_table+4]==READY)then
+while(counter < 16) do
+	if([PROCESS_TABLE + counter * 16 + 4] == CREATED || [PROCESS_TABLE + counter * 16 + 4] == READY) then
+		newPID = counter;
 		break;
 	endif;
-	newPID=newPID+1;
-	if(newPID==16)then
-		newPID=1;
-	endif;
+	counter = counter + 1;
 endwhile;
 
-if(newPID==currPID)then
-	new_process_table=PROCESS_TABLE+newPID*16;
-	if([new_process_table+4]==CREATED || [new_process_table+4]==READY)then
-		newPID=currPID;
-	else
-		newPID=0;
-		halt;
-	endif;
-endif;
-
+alias new_process_table R3;
 new_process_table=PROCESS_TABLE+newPID*16;
 
 SP=[new_process_table+11]*512+[new_process_table+12];

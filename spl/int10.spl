@@ -6,7 +6,7 @@ alias new_process_table R1;
 new_process_table=PROCESS_TABLE+currPID*16;
 
 alias counter R2;
-counter= 0;
+counter= 1;
 
 alias temp R3;
 temp=1;
@@ -17,15 +17,11 @@ while(counter<16)do
 	new_process_table=PROCESS_TABLE+counter*16;
 	if([new_process_table+4]!=TERMINATED)then
 		temp=0;
+		call MOD_5;
 	endif;
 	counter=counter+1;
 endwhile;
 
-if(temp==0)then
-	halt;
-else
-	call MOD_5;
-endif;
-
+halt;
 ireturn;
 

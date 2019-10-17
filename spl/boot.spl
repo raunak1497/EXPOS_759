@@ -28,6 +28,13 @@ loadi(66,8);
 loadi(85,69);
 loadi(86,70);
 
+//MODULE 0
+loadi(40,53);
+loadi(41,54);
+
+//MODULE 4
+loadi(48,61);
+loadi(49,62);
 
 PTBR=PAGE_TABLE_BASE+20;
 
@@ -113,6 +120,7 @@ PTLR=10;
 [PROCESS_TABLE+16*2+14]=PTBR;
 [PROCESS_TABLE+16*2+15]=PTLR;
 
+[TERMINAL_STATUS_TABLE+0]=0;
 
 alias counter R0;
 	counter=3;

@@ -1,0 +1,37 @@
+alias funcnum R1;
+alias currPID R2;
+alias Counter R3;
+
+if(funcnum==8)then
+	print "Accquire terminal";
+	while([TERMINAL_STATUS_TABLE]!=0) do
+		[PROCESS_TABLE+16*currPID+4]=WAIT_TERMINAL;
+		multipush(R1,R2,R3,R4);
+		call MOD_5;
+		multipop(R1,R2,R3,R4);
+	endwhile;
+	[TERMINAL_STATUS_TABLE]=1;
+	[TERMINAL_STATUS_TABLE+1]=currPID;
+	return;
+endif;
+
+if(funcnum==9)then
+	if(currPID==[TERMINAL_STATUS_TABLE+1])then
+		[TERMINAL_STATUS_TABLE]=0;
+	Counter=0;
+	while(Counter<=15)do
+		if([PROCESS_TABLE+16*Counter+4]==WAIT_TERMINAL)then
+			[PROCESS_TABLE+16*Counter+4]=READY;
+		endif;
+		Counter = Counter + 1;
+	endwhile;
+	R0=0;
+	else
+		R0=-1;
+		return;
+	endif;
+endif;
+
+return;
+			
+
