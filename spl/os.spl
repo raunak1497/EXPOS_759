@@ -1,4 +1,4 @@
-print "IN OS";
+//print "In OS";
 
 //EXCEPTION HANDLER
 loadi(2,15);
@@ -16,6 +16,14 @@ loadi(17,30);
 loadi(22,35);
 loadi(23,36);
 
+//SCHEDULER MODULE 5
+loadi(50,63);
+loadi(51,64);
+
+//MODULE 7
+loadi(54,67);
+loadi(55,68);
+
 //LIBRARY
 loadi(63,13);
 loadi(64,14);
@@ -28,12 +36,9 @@ loadi(66,8);
 loadi(69,11); 
 loadi(70,12);
 
-//MODULE 7
-loadi(54,67);
-loadi(55,68);
-
 SP = 82*512 - 1;
-//CALL BOOT MODULE
+
+//BOOT MODULE CALL
 call BOOT_MODULE;
 
 PTBR=PAGE_TABLE_BASE;
@@ -79,7 +84,6 @@ PTLR=10;
 [PROCESS_TABLE+15]=PTLR;
 
 [SYSTEM_STATUS_TABLE+1]=0;
+PTBR = PAGE_TABLE_BASE;
 
 ireturn;
-
-

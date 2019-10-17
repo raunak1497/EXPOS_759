@@ -1,0 +1,31 @@
+//print "IN INT 10";
+alias currPID R0;
+currPID=[SYSTEM_STATUS_TABLE+1];
+
+alias new_process_table R1;
+new_process_table=PROCESS_TABLE+currPID*16;
+
+alias counter R2;
+counter= 0;
+
+alias temp R3;
+temp=1;
+
+[new_process_table+4]=TERMINATED;
+
+while(counter<16)do
+	new_process_table=PROCESS_TABLE+counter*16;
+	if([new_process_table+4]!=TERMINATED)then
+		temp=0;
+	endif;
+	counter=counter+1;
+endwhile;
+
+if(temp==0)then
+	halt;
+else
+	call MOD_5;
+endif;
+
+ireturn;
+
