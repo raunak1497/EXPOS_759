@@ -1,7 +1,6 @@
 alias currPID R0;
 currPID=[SYSTEM_STATUS_TABLE+1];
 
-//[SP]=BP;
 multipush(BP);
 alias process_table_entry R4;
 
@@ -43,5 +42,4 @@ if([new_process_table+4] == CREATED)then
 endif;
 [new_process_table+4]=RUNNING;
 multipop(BP);
-//BP = [SP];
 return;

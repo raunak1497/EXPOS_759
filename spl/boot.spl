@@ -50,6 +50,10 @@ loadi(9,22);
 loadi(14,27);
 loadi(15,28);
 
+//INTERRUPT 8
+loadi(18,31);
+loadi(19,32);
+
 //INTERRUPT 9
 loadi(20,33);
 loadi(21,34);

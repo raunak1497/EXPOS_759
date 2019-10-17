@@ -1,6 +1,25 @@
 alias funcNum R1;
 alias currPID R2;
 
+//get pcb entry
+if(funcNum==1)then
+	alias i R5;
+	i=0;
+	while(i<16)do
+		if([PROCESS_TABLE+(i*16)+4]==TERMINATED)then
+			R0=i;
+			[PROCESS_TABLE+(i*16)+1]=i;
+			[PROCESS_TABLE+(i*16)+4]=ALLOCATED;//set the state to allocated
+			[PROCESS_TABLE+(i*16)+14]=PAGE_TABLE_BASE+(20*i);//initialising ptbr to start of process table
+			[PROCESS_TABLE+(i*16)+15]=10;//PTLR
+			return;
+		endif;
+		i=i+1;
+	endwhile;
+	R0=-1;
+	return;
+endif;
+
 //free user page
 if(funcNum==2)then
 	
@@ -15,7 +34,16 @@ endif;
 
 //exit process
 if(funcNum==3)then
-	
+	if([PROCESS_TABLE+(currPID*16)+9]!=9)then
+	alias i R3;
+	while(i<16)do
+		if(([PROCESS_TABLE+(i*16)+4]==WAIT_PROCESS)&& ([PROCESS_TABLE+i*16+5]==currPID))then
+			[PROCESS_TABLE+(i*16)+2]=-1;
+		endif;
+		i=i+1;
+	endwhile;
+endif;
+
 	//free page table
 	backup;
 	R1=4;
