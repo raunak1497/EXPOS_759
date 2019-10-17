@@ -1,0 +1,74 @@
+print "mod1";
+alias funcNum R1;
+alias currPID R2;
+
+//free user page
+if(funcNum==2)then
+	
+	//release page
+	backup;
+	R1=2;
+	R2=[PROCESS_TABLE+currPID*16+11];
+	call MOD_2;
+	restore;
+	return;
+endif;
+
+//exit process
+if(funcNum==3)then
+	
+	//free page table
+	backup;
+	R1=4;
+	R2=currPID;
+	call MOD_1;
+	restore;
+	
+	//free user area page
+	backup;
+	R1=2;
+	R2=currPID;
+	call MOD_1;
+	restore;
+
+	//terminating the calling process
+	[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+4]=TERMINATED;
+
+	return;
+endif;
+
+
+//free page table
+if(funcNum==4)then
+
+//Inavalidate library page
+	[PTBR+0]=-1;
+	[PTBR+1]="0000";
+	[PTBR+2]=-1;
+	[PTBR+3]="0000";
+
+//Release the page	
+alias counter R3;
+counter=4;
+while(counter<20)do
+		if([PTBR+counter]!=-1)then
+
+//release the page 
+			backup;
+			R1=2;
+			R2=[PTBR+counter];
+			call MOD_2;
+			restore;
+
+			[PTBR+counter]=-1;
+			[PTBR+counter+1]="0000";
+
+		endif;
+		counter=counter+2;
+endwhile;
+
+	return;
+endif;
+
+return;
+

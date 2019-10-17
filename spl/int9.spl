@@ -1,0 +1,161 @@
+print "int 9";
+breakpoint;
+[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13]=SP;
+
+alias userSP R0;
+userSP=SP;
+
+SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11]*512-1;
+
+//setting mode flag to exec call
+[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+9]=9;
+
+//argument name
+alias filename R1;
+filename=[[PTBR+2*((userSP-4)/512)]*512+(userSP-4)%512];
+
+alias i R2;
+i=1;
+
+alias temp R3;
+temp=-1;
+
+//searching inode table for file name
+while(i<MAX_FILE_NUM)do
+	if(([INODE_TABLE+(i*16)]==EXEC) && ([INODE_TABLE+(i*16)+1]==filename))then
+		temp=i;
+		break;
+	endif;
+i=i+1;
+endwhile;
+
+if(temp<0)then
+
+	//setting stack to user stack
+	SP=userSP;
+	//setting mode flag 
+	[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+9]=0;
+
+	//setting the return address
+	[[PTBR+2*((userSP-1)/512)]+(userSP-1)%512]=-1;
+	ireturn;
+endif;
+
+alias exitPID R4;
+exitPID=[SYSTEM_STATUS_TABLE+1];
+
+//calling exit process to terminate current process
+backup; 
+R1=3;
+R2=exitPID;
+call MOD_1;
+restore;
+
+//user area page num deallocated by exit process with same pid
+alias pageNum R5;
+pageNum=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11];
+
+//incrementing memory free list
+[MEMORY_FREE_LIST+pageNum]=[MEMORY_FREE_LIST+pageNum]+1;
+
+//decrementing mem free count
+[SYSTEM_STATUS_TABLE+2]=[SYSTEM_STATUS_TABLE+2]-1;
+
+//setting SP to kernel stack
+SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11]*512-1;
+
+//set the state as running
+[PROCESS_TABLE +(exitPID*16)+4]=RUNNING;
+
+//storing inode index
+[PROCESS_TABLE +(exitPID*16)+7]=temp;
+
+//seeting page table
+PTBR=PAGE_TABLE_BASE+exitPID*20;
+
+breakpoint;
+//LIBRARY
+[PTBR+0]=63;
+[PTBR+1]="0100";
+[PTBR+2]=64;
+[PTBR+3]="0100";
+
+breakpoint;
+//HEAP
+backup;
+R1=1;
+call MOD_2;
+[PTBR+4]=R0;
+[PTBR+5]="0110";
+restore;
+
+backup;
+R1=1;
+call MOD_2;
+[PTBR+6]=R0;
+[PTBR+7]="0110";
+restore;
+
+
+//STACK
+backup;
+R1=1;
+call MOD_2;
+[PTBR+16]=R0;
+[PTBR+17]="0110";
+restore;
+
+backup;
+R1=1;
+call MOD_2;
+[PTBR+18]=R0;
+[PTBR+19]="0110";
+restore;
+
+//CODEPAGES
+alias counter R7;
+counter=8;
+
+alias noBlock R8;
+noBlock=0;
+
+//NO OF CODE PAGES
+while(counter<12)do
+	if([INODE_TABLE+temp*16+counter]==-1)then
+		break;
+	else
+		noBlock=noBlock+1;
+	endif;
+	counter=counter+1;
+endwhile;
+
+counter=8; 
+
+alias k R9;
+k=8;
+
+while(noBlock)do
+	backup;
+	R1=1;
+	call MOD_2;
+	[PTBR+counter]=R0;
+	[PTBR+counter+1]="0110";
+	temp=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+7];
+	loadi(R0,[INODE_TABLE+temp*16+k]);
+	counter=counter+2;
+	k=k+1;
+	restore;
+	
+	noBlock=noBlock-1;
+endwhile;
+
+
+[[PTBR+16]*512]=[[PTBR+8]*512+1];
+SP=8*512;
+
+[PROCESS_TABLE+(exitPID*16)+9]=0;
+breakpoint;
+
+ireturn;
+
+

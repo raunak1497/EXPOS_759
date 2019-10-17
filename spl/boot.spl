@@ -1,4 +1,4 @@
-//print "In Boot";
+print "In Boot";
 
 //EXCEPTION HANDLER
 loadi(2,15);
@@ -32,6 +32,14 @@ loadi(86,70);
 loadi(40,53);
 loadi(41,54);
 
+//MODULE 1
+loadi(42,55);
+loadi(43,56);
+
+//MODULE 2
+loadi(44,57);
+loadi(45,58);
+
 //MODULE 4
 loadi(48,61);
 loadi(49,62);
@@ -43,6 +51,14 @@ loadi(9,22);
 //INTERRUPT 6
 loadi(14,27);
 loadi(15,28);
+
+//INTERRUPT 9
+loadi(20,33);
+loadi(21,34);
+
+//INODE TABLE
+loadi(59,3);
+loadi(60,4);
 
 PTBR=PAGE_TABLE_BASE+20;
 
@@ -96,5 +112,18 @@ while(counter<=15)do
 	counter = counter + 1;
 endwhile;
 
+alias i R4;
+i=0;
+
+while(i<128)do
+	if(i<83)then
+		[MEMORY_FREE_LIST+i]=1;
+	else
+		[MEMORY_FREE_LIST+i]=0;
+	endif;
+	i=i+1;
+endwhile;
+[SYSTEM_STATUS_TABLE+3]=0;
+[SYSTEM_STATUS_TABLE+2]=45;
 //print "In Boot2";
 return;

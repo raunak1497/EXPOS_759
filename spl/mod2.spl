@@ -1,0 +1,66 @@
+print "mod2";
+alias funcNum R1;
+alias pageNo R2;
+
+//get free page
+if(funcNum==1)then
+
+	//increment wait_mem
+	[SYSTEM_STATUS_TABLE+3]=[SYSTEM_STATUS_TABLE+3]+1;
+
+	//wait for memory
+	while([SYSTEM_STATUS_TABLE+2]==0)do
+		[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+4]=WAIT_MEM;
+		//call scheduler
+		backup;
+		call MOD_5;
+		restore;
+	endwhile;
+
+	//decrment wait_mem count
+	[SYSTEM_STATUS_TABLE+3]=[SYSTEM_STATUS_TABLE+3]-1;
+
+	//decrement mem_free count
+	[SYSTEM_STATUS_TABLE+2]=[SYSTEM_STATUS_TABLE+2]-1;
+
+	alias  temp R4;
+	temp=76;
+	while(temp<128)do
+		if([MEMORY_FREE_LIST+temp]==0)then
+			[MEMORY_FREE_LIST+temp]= [MEMORY_FREE_LIST+temp] + 1;
+			break;
+		endif;
+		temp=temp+1;
+	endwhile;
+	
+	R0=temp;
+	return;
+endif;
+
+//release page
+if(funcNum==2)then
+
+	[MEMORY_FREE_LIST+pageNo]=[MEMORY_FREE_LIST+pageNo]-1;
+
+	if([MEMORY_FREE_LIST+pageNo]==0)then
+		[SYSTEM_STATUS_TABLE+2]=[SYSTEM_STATUS_TABLE+2]+1;
+
+		//updating state of all process
+		alias counter R3;
+		counter=1;
+		while(counter<16)do
+			if([PROCESS_TABLE+(counter*16)+4]==WAIT_MEM)then
+			[PROCESS_TABLE+counter*16+4]=READY;
+			endif;
+		counter=counter+1;
+		endwhile;
+	endif;
+
+	return;
+endif;
+
+return;
+
+
+
+

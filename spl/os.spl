@@ -1,4 +1,4 @@
-//print "In OS";
+print "In OS";
 
 //EXCEPTION HANDLER
 loadi(2,15);
@@ -87,4 +87,5 @@ PTLR=10;
 [SYSTEM_STATUS_TABLE+1]=0;
 PTBR = PAGE_TABLE_BASE;
 
+breakpoint;
 ireturn;
