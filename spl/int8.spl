@@ -14,6 +14,8 @@ ret=[PTBR+2*(SP-1)/512]*512+(SP-1)%512;
 R1=GET_PCB_ENTRY;
 call MOD_1;
 
+breakpoint;
+
 //if free process table is not available
 if(R0==-1)then
 	[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+9]=0;//mode flag to user
@@ -39,6 +41,8 @@ parentPT=PROCESS_TABLE+(parentPID*16);
 childPT=PROCESS_TABLE+(childPID*16);
 
 //if heap pages are not allocated allocate heap pages
+
+breakpoint;
 
 if([PTBR+4]==-1)then
 	backup;
@@ -80,7 +84,7 @@ restore;
 backup;
 R1=GET_FREE_PAGE;
 call MOD_2;
-[parentPT+11]=R0;
+[childPT+11]=R0;
 restore;
 
 //copying contents from parent to child
@@ -92,6 +96,8 @@ while(i<16)do
 	endif;
 	i=i+1;
 endwhile;
+
+breakpoint;
 
 //setting up process table for 
 //parent PID

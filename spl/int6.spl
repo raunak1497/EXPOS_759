@@ -19,7 +19,7 @@ else
 	R1=4;
 	R2=[SYSTEM_STATUS_TABLE+1];
 	R3=wordAddress;
-	breakpoint;
+	//breakpoint;
 	call MOD_4;
 	multipop(R0,R1,R2,R3);
 	[[PTBR + 2 * ((userSP - 1) / 512)] * 512 + ((userSP - 1) % 512)]= 0;
