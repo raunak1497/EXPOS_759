@@ -5,8 +5,10 @@
 [PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13]=SP;
 
 //switching to kernel stack
-SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11];
+SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11]*512-1;
 
+alias ret R15;
+ret=[PTBR+2*(SP-1)/512]*512+(SP-1)%512;
 
 //allocate memory and set process table
 R1=GET_PCB_ENTRY;
@@ -16,11 +18,8 @@ call MOD_1;
 if(R0==-1)then
 	[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+9]=0;//mode flag to user
 	SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13];//switch back to user stck
-	multipush(R0);
-	alias userSP R0;
-	userSP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13];
-	[[PTBR+2*(userSP-1)/512]*512+((userSP-1)%512)]=-1;//return value -1 to stack
-	multipop(R0);
+	SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13];
+	[ret]=-1;//return value -1 to stack
 	ireturn; 
 endif;
 
@@ -36,8 +35,8 @@ parentPID=[SYSTEM_STATUS_TABLE+1];
 childPID=R0;
 parentPTBR=PAGE_TABLE_BASE+(20*parentPID);
 childPTBR=PAGE_TABLE_BASE+(20*childPID);
-parentPT=PROCESS_TABLE+parentPID*16;
-childPT=PROCESS_TABLE+childPID*16;
+parentPT=PROCESS_TABLE+(parentPID*16);
+childPT=PROCESS_TABLE+(childPID*16);
 
 //if heap pages are not allocated allocate heap pages
 
@@ -47,7 +46,7 @@ if([PTBR+4]==-1)then
 	call MOD_2;
 	[PTBR+4]=R0;
 	[PTBR+5]="0110";
-	backup;
+	restore;
 endif;
 
 if([PTBR+6]==-1)then
@@ -56,7 +55,7 @@ if([PTBR+6]==-1)then
 	call MOD_2;
 	[PTBR+6]=R0;
 	[PTBR+7]="0110";
-	backup;
+	restore;
 endif;
 
 //allocate 2 stack and one user area page number
@@ -84,10 +83,11 @@ call MOD_2;
 [parentPT+11]=R0;
 restore;
 
+//copying contents from parent to child
 alias i R9;
-
+i=0;
 while(i<16)do
-	if((i==3)||(i==4)||(i==6)||(i==7)||(i==8)||(i==9)||(i==13))then
+	if((i==3)||(i==4)||(i==6)||(i==7)||(i==9)||(i==10)||(i==13))then
 		[childPT+i]=[parentPT+i];
 	endif;
 	i=i+1;
@@ -98,7 +98,7 @@ endwhile;
 [childPT+2]=parentPID;
 
 //tick field for child
-[childPT]=0;
+[childPT+0]=0;
 
 //mode
 [childPT+9]=0;
@@ -112,8 +112,8 @@ alias child_userarea_page R11;
 alias temp R12;
 
 //copy parent per process resource table
-parent_userarea_page=[PROCESS_TABLE+parentPID*16+11];
-child_userarea_page=[PROCESS_TABLE+childPID*16+11];
+parent_userarea_page=[parentPT+11];
+child_userarea_page=[childPT+11];
 i=496;
 while(i<512)do
 	[child_userarea_page+i]=[parent_userarea_page+i];
@@ -130,11 +130,11 @@ endwhile;
 
 //copying page table entries
 i=0;
-while(i<15)do
-	temp=[PAGE_TABLE_BASE+(parentPID)*20+i];
-	[PAGE_TABLE_BASE+(childPID)*20+i]=temp;
-	[PAGE_TABLE_BASE+(childPID)*20+i+1]=[PAGE_TABLE_BASE+(parentPID)*20+i+1];
-	if(temp!=-1)then
+while(i<16)do
+	temp=[parentPTBR+i];
+	[childPTBR+i]=temp;
+	[childPTBR+i+1]=[parentPTBR+i+1];
+	if((temp!=-1) && (i>3))then
 		[MEMORY_FREE_LIST+temp]=[MEMORY_FREE_LIST+temp]+1;
 	endif;
 	i=i+2;
@@ -145,8 +145,8 @@ alias parent_userstack R13;
 alias child_userstack R14;
 
 //stack 1
-parent_userstack=[PAGE_TABLE_BASE+parentPID*20+16];
-child_userstack=[PAGE_TABLE_BASE+childPID*20+16];
+parent_userstack=[parentPTBR+16];
+child_userstack=[childPTBR+16];
 
 if(parent_userstack!=-1)then
 	i=0;
@@ -157,8 +157,9 @@ if(parent_userstack!=-1)then
 endif;
 
 //stack 2
-parent_userstack=[PAGE_TABLE_BASE+parentPID*20+18];
-child_userstack=[PAGE_TABLE_BASE+childPID*20+18];
+parent_userstack=[parentPTBR+18];
+child_userstack=[childPTBR+18];
+
 
 if(parent_userstack!=-1)then
 	i=0;
@@ -170,25 +171,25 @@ endif;
 
 
 //store BP to beginning of kernel stack
-[[PROCESS_TABLE+childPID*16+11]*512]=BP;
+[[childPT+11]*512]=BP;
 
 //return value of child process is 0
-child_userstack=[PROCESS_TABLE+(childPID*16)+13];
+child_userstack=[childPT+13];
 
-[[PAGE_TABLE_BASE + (childPID * 20) + (2 * ((child_userstack - 1) / 512))] * 512 + ((child_userstack - 1) % 512)] = 0;
+[[childPTBR+ (2 * ((child_userstack - 1) / 512))] * 512 + ((child_userstack - 1) % 512)] = 0;
 
+//return value of parent process is child PID
+parent_userstack=[parentPT+13];
 
-//return child pid to parent process
-child_userstack=[PROCESS_TABLE+(childPID*16)+13];
+[[parentPTBR+ (2 * ((parent_userstack - 1) / 512))] * 512 + ((parent_userstack - 1) % 512)] = childPID;
 
-[[PAGE_TABLE_BASE + (childPID * 20) + (2 * ((child_userstack - 1) / 512))] * 512 + ((child_userstack - 1) % 512)] = 0;
 
 //state of child process is created
-[PROCESS_TABLE + (childPID*16)+4]=CREATED;
+[childPT+4]=CREATED;
 
 //change mode of parent to user
-[PROCESS_TABLE+(parentPID*16)+9]=0;
+[parentPT+9]=0;
 
-SP=[PROCESS_TABLE+(parentPID*16)+13];
+SP=[parentPT+13];
 breakpoint;
 ireturn;
