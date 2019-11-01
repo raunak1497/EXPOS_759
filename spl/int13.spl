@@ -1,0 +1,105 @@
+alias sysCall R0;
+alias userSP R1;
+alias currrPID R2;
+
+userSP=SP;
+sysCall=[[PTBR+2*((userSP-5)/512)]*512+(userSP-5)%512];
+currPID=[SYSTEM_STATUS_TABLE+1];
+
+//switch to kernel stack
+[PROCESS_TABLE+currPID*16+13]=userSP;
+SP=[PROCESS_TABLE+currPID*16+11]*512-1;
+
+//semget sys call
+if(sysCall==17)then
+	alias i R3;
+	alias userAreapage R4;
+	alias freeEntry R5;
+
+	userAreapage=[PROCESS_TABLE+(currPID*16)+11];
+	//set mode flag to 17
+	[PROCESS_TABLE+(currPID*16)+9]=sysCall;
+
+	i=496;
+	freeEntry=-1;
+	while(i<512)do
+		if([userAreapage*512+i]==-1)then
+			freeEntry=i;
+			break;
+		endif;
+		i=i+2;
+	endwhile;
+
+	if(freeEntry==-1)then
+		//reset mode flag to user mode
+		[PROCESS_TABLE+(currPID*16)+9]=0;
+		[[PTBR+2*((userSP-1)/512)]*512+(userSP-1)%512]=-1;
+		SP=userSP;
+		ireturn;
+	endif;
+
+	//if valid entry is found
+	[userAreapage*512+freeEntry]=1;
+
+	backup;
+	R1=ACQUIRE_SEMAPHORE;
+	R2=currPID;
+	call MOD_0;
+	R6=R0;
+	restore;
+	alias newSem R6;
+
+	if(newSem==-1)then
+
+		//switch to user mode
+		[PROCESS_TABLE+(currPID*16)+9]=0;
+		[[PTBR+2*((userSP-1)/512)]*512+(userSP-1)%512]=-2;
+		SP=userSP;
+		ireturn;
+	endif;
+
+	//store index of semaphore in per process table entry index
+	[userAreapage*512+freeEntry+1]=newSem;
+	[userAreapage*512+freeEntry]=SEMAPHORE;
+
+	SP=userSP;
+	[PROCESS_TABLE+(currPID*16)+9]=0;
+
+	//set return value as per process resource table entry index
+	[[PTBR+2*((userSP-1)/512)]*512+(userSP-1)%512]=(freeEntry-496)/2;
+
+	ireturn;
+endif;
+
+//semrelease sys call
+if(sysCall==18)then
+	alias semDesc R3;
+	alias userAreapage R4;
+	
+	[PROCESS_TABLE+(currPID*16)+9]=sysCall;
+
+	userAreapage=[PROCESS_TABLE+(currPID*16)+11];
+	semDesc=[[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)]; 
+
+	if((semDesc<0) || (semDesc>7) || ([userAreapage * 512 + 496 + 2 * semDesc]!=1))then
+		[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+		[PROCESS_TABLE+(currPID*16)+9]=0;
+		SP=userSP;
+		ireturn;
+	endif;
+
+	backup;
+	R1=RELEASE_SEMAPHORE;
+	R2=currPID;
+	R3=[userAreapage*512+496+2*semDesc+1];
+	call MOD_0;
+	restore;
+
+	//invalidate per process resource table entry
+	[userAreapage*512+2*semDesc+396+1]=-1;
+
+	//return value
+	[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
+	SP=userSP;
+	ireturn;
+endif;

@@ -1,0 +1,121 @@
+alias sysCall R0;
+alias userSP R1;
+alias currrPID R2;
+alias curr_PT R3;
+
+userSP=SP;
+sysCall=[[PTBR+2*((userSP-5)/512)]*512+(userSP-5)%512];
+currPID=[SYSTEM_STATUS_TABLE+1];
+curr_PT=PROCESS_TABLE+currPID*16;
+//switch to kernel stack
+[PROCESS_TABLE+(currPID*16)+13]=userSP;
+SP=[PROCESS_TABLE+(currPID*16)+11]*512-1;
+
+//SemLock sys call
+if(sysCall==19)then
+	alias semDesc R4;
+	alias userAreapage  R5;
+	semDesc=[[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
+	userAreapage=[curr_PT+11];
+
+	//set the mode flag
+	[curr_PT+9]=sysCall;
+
+	//if semDesc is not valid
+	if( (semDesc<0) || (semDesc>7) || ([userAreapage*512+496+2*semDesc]!=1))then
+		[curr_PT+9]=0;
+		[[PTBR+2*((userSP-1)/512)]*512+(userSP-1)%512]=-1;
+		SP=userSP;
+		ireturn;
+	endif;
+
+	//if semDesc is valid
+	alias semid R6;
+	semid=[userAreapage*512+496+2*semDesc+1];
+
+	//wait while semaphore is locked
+	while([SEMAPHORE_TABLE+(4*semid)]!=-1)do
+		//change the state of current process must wait
+		[curr_PT+4]=WAIT_SEMAPHORE;
+		[curr_PT+5]=semid;
+
+		//call scheduler
+		backup;
+		call MOD_5;
+		restore;
+
+	endwhile;
+
+	//change locking pid to currpid
+	[SEMAPHORE_TABLE+(4*semid)]=currPID;
+	
+	//return 0 for success in user stack
+	[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
+
+	//change to user mode
+	[curr_PT+9]=0;
+	SP=userSP;
+
+	ireturn;
+endif;
+
+//sem unlock sys call
+if(sysCall==20)then
+	alias semDesc R4;
+	alias userAreapage  R5;
+	semDesc=[[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
+	userAreapage=[curr_PT+11];
+
+	//set mode flag to sys call
+	[curr_PT+9]=sysCall;
+
+	//if semDesc is not valid
+	if( (semDesc<0) || (semDesc>7) || ([userAreapage*512+496+2*semDesc]!=1))then
+		[curr_PT+9]=0;
+		[[PTBR+2*((userSP-1)/512)]*512+(userSP-1)%512]=-1;
+		SP=userSP;
+		ireturn;
+	endif;
+
+	//if semDesc is valid
+	alias semid R6;
+	semid=[userAreapage*512+496+2*semDesc+1];
+
+	//
+	if([SEMAPHORE_TABLE+(4*semid)]!=-1)then
+		if([SEMAPHORE_TABLE+(4*semid)]!=currPID)then
+
+		//if locked by some other process return -2
+		[curr_PT+9]=0;
+		[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-2;
+		SP=userSP;
+		ireturn;
+		endif;
+
+
+	//unlock the semaphore
+	//set locking pid to -1
+	[SEMAPHORE_TABLE+(semid*4)]=-1;
+
+	//change state of al  process to ready
+	alias i R7;
+	i=0;
+	while(i<16)do
+		alias temp R8;
+		temp=PROCESS_TABLE+(i*16);
+		if(([temp+4]==WAIT_SEMAPHORE) && ([temp+5]==semid))then
+			[temp+4]=READY;
+		endif;
+		i=i+1;
+	endwhile;
+
+	endif;
+
+	//return 0 in user stack 
+	[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
+	//reset mode flag
+	[curr_PT+9]=0;
+	SP=userSP;
+	ireturn;
+	
+endif;
