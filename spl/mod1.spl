@@ -20,46 +20,76 @@ if(funcNum==1)then
 	return;
 endif;
 
-//free user page
+//free user area page
 if(funcNum==2)then
-	
+	alias userareaPage R3;
+	alias i R4;
+
+	userareaPage=[PROCESS_TABLE+currPID*16+11];
+	//for every valid semaphore entry invoke release semaphore
+
+	i=0;
+	while(i<15)do
+		if([userareaPage*512+i+496]==SEMAPHORE)then
+			backup;
+			R1=RELEASE_SEMAPHORE;
+			R2=currPID;
+			R3=[userareaPage*512+i+496+1]; //semid
+			call MOD_0;
+			restore;
+			[userareaPage*512+i+496]=-1;
+		endif;
+		i=i+2;
+	endwhile;
+
 	//release page
 	backup;
 	R1=2;
-	R2=[PROCESS_TABLE+currPID*16+11];
+	R2=userareaPage;
 	call MOD_2;
 	restore;
+
 	return;
 endif;
 
 //exit process
 if(funcNum==3)then
 	if([PROCESS_TABLE+(currPID*16)+9]!=9)then
-	alias i R3;
-	while(i<16)do
-		if(([PROCESS_TABLE+(i*16)+4]==WAIT_PROCESS)&& ([PROCESS_TABLE+i*16+5]==currPID))then
-			[PROCESS_TABLE+(i*16)+2]=-1;
-		endif;
-		i=i+1;
-	endwhile;
-endif;
+		alias i R3;
+		i=0;
+		while(i<16)do
+
+		//wake up all the process waiting for current process to exit
+			if(([PROCESS_TABLE+(i*16)+4]==WAIT_PROCESS)&& ([PROCESS_TABLE+i*16+5]==currPID))then
+				[PROCESS_TABLE+(i*16)+4]=READY;
+			endif;
+
+			//setting the ppid of the child to orphan 
+			if([PROCESS_TABLE+(16*i)+5]==currPID)then
+				[PROCESS_TABLE+(16*i)+2]=-1;
+			endif;
+
+			i=i+1;
+			
+		endwhile;
+	endif;
 
 	//free page table
 	backup;
-	R1=4;
+	R1=FREE_PAGE_TABLE;
 	R2=currPID;
 	call MOD_1;
 	restore;
 	
 	//free user area page
 	backup;
-	R1=2;
+	R1=FREE_PAGE_TABLE;
 	R2=currPID;
 	call MOD_1;
 	restore;
 
 	//terminating the calling process
-	[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+4]=TERMINATED;
+	[PROCESS_TABLE+(currPID*16)+4]=TERMINATED;
 
 	return;
 endif;

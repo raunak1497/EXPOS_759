@@ -1,0 +1,114 @@
+alias sysCall R0;
+alias userSP R1;
+alias currPID R2;
+
+userSP=SP;
+currPID=[SYSTEM_STATUS_TABLE+1];
+sysCall=[[PTBR+2*((userSP-5)/512)]*512+(userSP-5)%512];
+
+//switch to kernel stack 
+[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13]=SP;
+SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11];
+
+//Getpid
+if(sysCall==11)then
+
+	//set mode flag to sys call number
+	[PROCESS_TABLE+currPID*16+9]=sysCall;
+
+	//return pid of current process
+	[[PTBR+2*((userSP-1)/512)]*512+(userSP-1)%512]=[PROCESS_TABLE+(currPID*16)+1];
+
+	//reset mode flag to user
+	[PROCESS_TABLE+(currPID*16)+9]=0;
+
+	//set user stack
+	SP=userSP;
+	ireturn;
+endif;
+
+//GetPpid
+if(sysCall==12)then
+
+	//set mode flag
+	[PROCESS_TABLE+currPID*16+9]=sysCall;
+
+	//return pid of current process
+	[[PTBR+2*((userSP-1)/512)]*512+(userSP-1)%512]=[PROCESS_TABLE+(currPID*16)+2];
+
+	//set mode flag to user
+	[PROCESS_TABLE+currPID*16+9]=0;
+
+	//set user stack
+	SP=userSP;
+	ireturn;
+
+endif;
+
+//ret address
+alias ret R4;
+ret=[[PTBR+2*((userSP-1)/512)]*512+(userSP-1)%512];
+
+//Wait system call
+if(sysCall==13)then
+	alias argPID R3;
+	
+	//set mode flag
+	[PROCESS_TABLE+(currPID*16)+9]=13;
+
+	//extract argument PID
+	argPID=[[PTBR+2*((userSP-4)/512)]*512+(userSP-4)%512];
+
+	//if pid is invalid or process is terminated
+	if((argPID<0) || (argPID>=16) || (argPID==currPID)|| ([PROCESS_TABLE+(argPID*16)+4]==TERMINATED))then
+		[ret]=-1;
+		[PROCESS_TABLE+(16*currPID)+9]=0;
+		SP=userSP;
+	ireturn;
+	endif;
+
+	//if pid is valid initialise the tuple
+	[PROCESS_TABLE+(currPID*16)+4]=WAIT_PROCESS;
+	[PROCESS_TABLE+(currPID*16)+5]=argPID;
+
+	backup;
+	call MOD_5;
+	restore;
+
+	//setting the mode flag
+	[PROCESS_TABLE+(currPID*16)+9]=0;
+
+	//store 0 as return value to success
+	[ret]=0;
+
+	SP=userSP;
+	ireturn;
+
+endif;
+
+//Signal system call
+if(sysCall==14)then
+	alias i R5;
+
+	//set mode flag to syscall
+	[PROCESS_TABLE+(currPID*16)+9]=sysCall;
+
+	i=0;	
+	while(i<16)do
+		if( ([PROCESS_TABLE+i*16+4]==WAIT_PROCESS) && ([PROCESS_TABLE+i*16+5]==currPID))then
+			[PROCESS_TABLE+(i*16)+4]=READY;
+		endif;
+		i=i+1;
+	endwhile;
+	
+	//setting the mode flag to user
+	[PROCESS_TABLE+(currPID*16)+9]=0;
+
+	//store 0 as return value to success
+	[ret]=0;
+
+	SP=userSP;
+	ireturn;
+
+endif;
+

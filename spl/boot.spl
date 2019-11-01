@@ -6,14 +6,6 @@ loadi(3,16);
 loadi(4,17);
 loadi(5,18);
 
-//INT 7
-loadi(16,29);
-loadi(17,30);
-
-//INT 10
-loadi(22,35);
-loadi(23,36);
-
 //LIBRARY
 loadi(63,13);
 loadi(64,14);
@@ -46,17 +38,33 @@ loadi(49,62);
 loadi(8,21);
 loadi(9,22);
 
-//INTERRUPT 6
+//INT 6
 loadi(14,27);
 loadi(15,28);
 
-//INTERRUPT 8
+//INT 7
+loadi(16,29);
+loadi(17,30);
+
+//INT 8
 loadi(18,31);
 loadi(19,32);
 
-//INTERRUPT 9
+//INT 9
 loadi(20,33);
 loadi(21,34);
+
+//INT 10
+loadi(22,35);
+loadi(23,36);
+
+//INT 11
+loadi(24,37);
+loadi(25,38);
+
+//INT 15
+loadi(32,45);
+loadi(33,46);
 
 //INODE TABLE
 loadi(59,3);
