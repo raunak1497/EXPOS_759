@@ -49,13 +49,13 @@ if(EC==3)then
 endif;
 
 if(EC==0)then
-	print "Page Fault";
+	print "PageFault";
 //code page fault
 	if((EPN==4)||(EPN==5)||(EPN==6)||(EPN==7))then
 		backup;
 		multipush(EC,EIP,EPN,EMA);
 		R1=GET_CODE_PAGE;
-		R2=[DISK_MAP_TABLE+(10*[SYSTEM_STATUS_TABLE])+EPN];//page number
+		R2=[DISK_MAP_TABLE+(10*[SYSTEM_STATUS_TABLE + 1])+EPN];//page number
 		call MOD_2;//memory manager
 		multipop(EC,EIP,EPN,EMA);
 		[PAGE_TABLE_BASE+([SYSTEM_STATUS_TABLE+1]*20)+2*EPN]=R0;

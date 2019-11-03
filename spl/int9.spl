@@ -72,12 +72,10 @@ SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11]*512-1;
 //storing inode index
 [PROCESS_TABLE +(exitPID*16)+7]=temp;
 
-//seeting page table
+//setting page table
 PTBR=PAGE_TABLE_BASE+exitPID*20;
 
 // SETTING THE PAGE TABLE
-
-breakpoint;
 
 //VALIDATE LIBRARY ENTRIES
 [PTBR+0]=63;
@@ -156,8 +154,6 @@ endwhile;
 [DISK_MAP_TABLE+(10*[SYSTEM_STATUS_TABLE+1])+5]=[inode_POS+9];//map block 2
 [DISK_MAP_TABLE+(10*[SYSTEM_STATUS_TABLE+1])+6]=[inode_POS+10];//map block 3
 [DISK_MAP_TABLE+(10*[SYSTEM_STATUS_TABLE+1])+7]=[inode_POS+11];//map block 4
-
-
 
 [[PTBR+16]*512]=[[PTBR+8]*512+1];
 SP=8*512;

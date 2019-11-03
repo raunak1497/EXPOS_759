@@ -14,13 +14,11 @@ ret=[PTBR+2*(SP-1)/512]*512+(SP-1)%512;
 R1=GET_PCB_ENTRY;
 call MOD_1;
 
-breakpoint;
 
 //if free process table is not available
 if(R0==-1)then
 	[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+9]=0;//mode flag to user
-	SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13];//switch back to user stck
-	SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13];
+	SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13];//switch back to user stcks
 	[ret]=-1;//return value -1 to stack
 	ireturn; 
 endif;
@@ -41,8 +39,6 @@ parentPT=PROCESS_TABLE+(parentPID*16);
 childPT=PROCESS_TABLE+(childPID*16);
 
 //if heap pages are not allocated allocate heap pages
-
-breakpoint;
 
 if([PTBR+4]==-1)then
 	backup;
@@ -97,7 +93,6 @@ while(i<16)do
 	i=i+1;
 endwhile;
 
-breakpoint;
 
 //setting up process table for 
 //parent PID
@@ -122,8 +117,13 @@ parent_userarea_page=[parentPT+11];
 child_userarea_page=[childPT+11];
 i=496;
 while(i<512)do
-	[child_userarea_page+i]=[parent_userarea_page+i];
-	[child_userarea_page+i+1]=[parent_userarea_page+i+1];
+	[child_userarea_page*512+i]=[parent_userarea_page*512+i];
+	[child_userarea_page*512+i+1]=[parent_userarea_page*512+i+1];
+	temp=[parent_userarea_page*512+i+1];
+	//increment process count
+	if([parent_userarea_page*512+i]==SEMAPHORE)then
+		[SEMAPHORE_TABLE+(4*temp)+1]=[SEMAPHORE_TABLE+(4*temp)+1]+1;
+	endif;
 	i=i+2;
 endwhile;
 
@@ -197,5 +197,4 @@ parent_userstack=[parentPT+13];
 [parentPT+9]=0;
 
 SP=[parentPT+13];
-breakpoint;
 ireturn;

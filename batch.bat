@@ -1,9 +1,8 @@
 load --init $HOME/myexpos/expl/Samples/shell1.xsm
 load --idle $HOME/myexpos/expl/Samples/idle.xsm
-load --exec $HOME/myexpos/expl/Samples/even.xsm
-load --exec $HOME/myexpos/expl/Samples/numbers.xsm
-load --exec $HOME/myexpos/expl/Samples/llist.xsm
-load --exec $HOME/myexpos/expl/Samples/sort.xsm
+load --exec $HOME/myexpos/expl/Samples/rw.xsm
+load --exec $HOME/myexpos/expl/Samples/parent.xsm
+load --exec $HOME/myexpos/expl/Samples/child.xsm
 load --exhandler ../spl/exhandler.xsm
 load --int=timer ../spl/timer.xsm
 load --int=6 ../spl/int6.xsm
@@ -12,6 +11,8 @@ load --int=8 ../spl/int8.xsm
 load --int=9 ../spl/int9.xsm
 load --int=10 ../spl/int10.xsm
 load --int=11 ../spl/int11.xsm
+load --int=13 ../spl/int13.xsm
+load --int=14 ../spl/int14.xsm
 load --int=15 ../spl/int15.xsm
 load --int=console ../spl/console.xsm
 load --int=disk ../spl/disk.xsm

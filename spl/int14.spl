@@ -1,16 +1,19 @@
 alias sysCall R0;
 alias userSP R1;
-alias currrPID R2;
+alias currPID R2;
 alias curr_PT R3;
 
 userSP=SP;
 sysCall=[[PTBR+2*((userSP-5)/512)]*512+(userSP-5)%512];
 currPID=[SYSTEM_STATUS_TABLE+1];
 curr_PT=PROCESS_TABLE+currPID*16;
-//switch to kernel stack
-[PROCESS_TABLE+(currPID*16)+13]=userSP;
-SP=[PROCESS_TABLE+(currPID*16)+11]*512-1;
 
+//switch to kernel stack
+[curr_PT+13]=userSP;
+SP=[curr_PT+11]*512-1;
+
+
+breakpoint;
 //SemLock sys call
 if(sysCall==19)then
 	alias semDesc R4;
@@ -55,10 +58,10 @@ if(sysCall==19)then
 	//change to user mode
 	[curr_PT+9]=0;
 	SP=userSP;
-
 	ireturn;
 endif;
 
+breakpoint;
 //sem unlock sys call
 if(sysCall==20)then
 	alias semDesc R4;
@@ -81,10 +84,9 @@ if(sysCall==20)then
 	alias semid R6;
 	semid=[userAreapage*512+496+2*semDesc+1];
 
-	//
+	//locked
 	if([SEMAPHORE_TABLE+(4*semid)]!=-1)then
 		if([SEMAPHORE_TABLE+(4*semid)]!=currPID)then
-
 		//if locked by some other process return -2
 		[curr_PT+9]=0;
 		[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-2;
@@ -97,7 +99,7 @@ if(sysCall==20)then
 	//set locking pid to -1
 	[SEMAPHORE_TABLE+(semid*4)]=-1;
 
-	//change state of al  process to ready
+	//change state of all process to ready
 	alias i R7;
 	i=0;
 	while(i<16)do
@@ -113,8 +115,10 @@ if(sysCall==20)then
 
 	//return 0 in user stack 
 	[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
+
 	//reset mode flag
 	[curr_PT+9]=0;
+	
 	SP=userSP;
 	ireturn;
 	

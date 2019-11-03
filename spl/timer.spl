@@ -2,7 +2,7 @@
 SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11]*512-1;
 
 backup;
-breakpoint;
+
 
 alias currPID R0;
 currPID=[SYSTEM_STATUS_TABLE+1];
@@ -13,7 +13,7 @@ process_table_entry=PROCESS_TABLE + currPID*16;
 [process_table_entry+4]=READY;
 
 //print "Before Module";
-breakpoint;
+
 call MOD_5;
 //print "After Module";
 

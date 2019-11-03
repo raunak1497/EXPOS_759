@@ -1,6 +1,6 @@
 alias funcnum R1;
 alias currPID R2;
-alias Counter R3;
+alias counter R3;
 
 breakpoint;
 
@@ -21,6 +21,55 @@ endwhile;
 
 endif;
 
+//accquire SEMAPHORE
+if(funcnum==ACQUIRE_SEMAPHORE)then
+	alias freeEntry R4;
+	freeEntry=-1;
+	counter=0;
+	while(counter<MAX_SEM_COUNT)do
+		if([SEMAPHORE_TABLE+(counter*4)+1]==0)then
+			freeEntry=counter;
+			break;
+		endif;
+		counter=counter+1;
+	endwhile;
+
+	if(freeEntry==-1)then
+		R0=-1;
+		return;
+	endif;
+	//set process count to 1
+	[SEMAPHORE_TABLE+(freeEntry*4)+1]=1;
+	//set LOCLKING_PID to -1
+	[SEMAPHORE_TABLE+(freeEntry*4)]=-1;
+	R0=freeEntry;
+	return;
+endif;
+
+//release SEMAPHORE
+if(funcnum==RELEASE_SEMAPHORE)then
+	alias semid R4;
+
+	//check if locking pid is equal to current pid
+	if([SEMAPHORE_TABLE+(semid*4)]==currPID)then
+		//set locking pid to -1;
+		[SEMAPHORE_TABLE+(4*semid)]=-1;
+		counter=0;
+		while(counter<16)do
+			if(([PROCESS_TABLE+(counter*16)+4]==WAIT_SEMAPHORE) && ([PROCESS_TABLE+(counter*16)+5]==semid))then
+				[PROCESS_TABLE+(counter*16)+4]=READY;
+			endif;
+			counter=counter+1;
+			endwhile;
+			R0=0;
+	else
+		R0=-1;
+	endif;
+	//decrement process_count of semaphore in semaphore table,if process count is 0 semaphore is free
+	[SEMAPHORE_TABLE+(semid*4)+1]=[SEMAPHORE_TABLE+(semid*4)+1]-1;
+	return;
+
+endif;
 
 //accquire terminal
 if(funcnum==8)then
@@ -40,12 +89,12 @@ endif;
 if(funcnum==9)then
 	if(currPID==[TERMINAL_STATUS_TABLE+1])then
 		[TERMINAL_STATUS_TABLE]=0;
-	Counter=0;
-	while(Counter<=15)do
-		if([PROCESS_TABLE+16*Counter+4]==WAIT_TERMINAL)then
-			[PROCESS_TABLE+16*Counter+4]=READY;
+	counter=0;
+	while(counter<=15)do
+		if([PROCESS_TABLE+16*counter+4]==WAIT_TERMINAL)then
+			[PROCESS_TABLE+16*counter+4]=READY;
 		endif;
-		Counter = Counter + 1;
+		counter = counter + 1;
 	endwhile;
 	R0=0;
 	else

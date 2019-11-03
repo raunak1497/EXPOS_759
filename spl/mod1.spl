@@ -1,6 +1,8 @@
 alias funcNum R1;
 alias currPID R2;
 
+breakpoint;
+
 //get pcb entry
 if(funcNum==1)then
 	alias i R5;
