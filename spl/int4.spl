@@ -1,0 +1,202 @@
+alias sysCall R0;
+alias userSP R1;
+alias filename R2;
+alias permission R3;
+alias curr_PT R4;
+alias i R5;
+alias currPID R6;
+
+userSP=SP;
+currPID=[SYSTEM_STATUS_TABLE+1];
+curr_PT=PROCESS_TABLE+currPID*16;
+permission=[[PTBR+2*((userSP-3)/512)]*512+((userSP-3)%512)];
+filename=[[PTBR+2*((userSP-4)/512)]*512+((userSP-4)%512)];
+sysCall=[[PTBR+2*((userSP-5)/512)]*512+(userSP-5)%512];
+
+//switch to kernel stack
+[PROCESS_TABLE+currPID*16+13]=userSP;
+SP=[PROCESS_TABLE+currPID*16+11]*512-1;
+
+//Create System call
+if(sysCall==1)then
+	//mode flag to sys call
+	[curr_PT+9]=sysCall;
+
+	//check if file is already in system
+	i=0;
+	while(i<MAX_FILE_NUM)do
+		if( ([INODE_TABLE+(i*16)]==DATA) && ([INODE_TABLE+(i*16)+1]==filename))then
+			//file ready in system
+			//return 0 success
+			[[PTBR+2*((userSP-1)/512)]*512+(userSP-1)%512]=0;
+			//reset MODE flag to user mode
+			[curr_PT+9]=0;
+			SP=userSP;
+			ireturn;
+		endif;
+	endwhile;
+
+	//find the free entry in INDODE TABLE 
+	i=0;
+	while(i<MAX_FILE_NUM)do
+		if([INODE_TABLE+(i*16)+1]==-1)then
+			break;
+		endif;
+		i=i+1;
+	endwhile;
+
+	if(i==MAX_FILE_NUM)then
+		[[PTBR+2*((userSP-1)/512)]*512+(userSP-1)%512]=-1;
+		//rest mode flag to user mode
+		[curr_PT+9]=0;
+		SP=userSP;
+		ireturn;
+	endif;
+
+	alias inode_id R7;
+	inode_id=INODE_TABLE+(i*16);
+	//set the file type
+	[inode_id]=DATA;
+	//set filename
+	[inode_id+1]=filename;
+	//set file size
+	[inode_id+2]=0;
+	//initialize userid
+	[inode_id+3]=[curr_PT+3];
+	//initialize permission
+	[inode_id+4]=permission;
+	//initialize block numbers to -1
+	i=8;
+	while(i<12)do
+		[inode_id+i]=-1;
+	endwhile;
+
+	i=(inode_id-INODE_TABLE)/16;
+	i=ROOT_FILE+(8*i);
+	//filename
+	[i+0]=filename;
+	//filesize
+	[i+1]=0;
+	//file type
+	[i+2]=DATA;
+	//username
+	[i+3]=[USER_TABLE+2*([curr_PT+3])];
+	//permission
+	[i+4]=permission;
+
+	//switch to user mode
+	[curr_PT+9]=0;
+	[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
+	SP=userSP;
+	ireturn;
+
+endif;
+
+
+//Delete sys call
+if(sysCall==4)then
+	
+	//mode flag to sys call
+	[curr_PT+9]=sysCall;
+
+	alias inode_id R7;
+	inode_id=-1;
+
+	i=0;
+	while(i<MAX_FILE_NUM)do
+		if([INODE_TABLE+(i*16)+1]==filename)then
+			inode_id=INODE_TABLE+(i*16);
+			break;
+		endif;
+		i=i+1;
+	endwhile;
+
+	//if file not present
+	if(inode_id ==-1)then
+		[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
+		[curr_PT+9]=0;
+		SP=userSP;
+		ireturn;
+	endif;
+
+	//if file is not DATA type
+	if([inode_id]!=DATA)then
+		[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+		[curr_PT+9]=0;
+		SP=userSP;
+		ireturn;
+	endif;
+
+	//if exclusive permission is set and user is not root and owner of file
+	if([inode_id+4]==0)then
+		if(([curr_PT+3]!=1) && ([curr_PT+3])!=[inode_id+3])then
+			[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-1;
+			[curr_PT+9]=0;
+			SP=userSP;
+			ireturn;
+		endif;
+	endif;
+
+	//accquire lock on file by accquire inode
+	backup;
+	R1=4;
+	R2=currPID;
+	R3=i;
+	call MOD_0;
+	restore;
+
+	//if file is open cannot delete
+	if([FILE_STATUS_TABLE+(i*4)+1]!=-1)then 
+		backup;
+		R1=5;//release node
+		R2=currPID;//pid
+		R3=i;//inode index
+		call MOD_0;
+		restore;
+
+		[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=-2;
+		[curr_PT+9]=0;
+		SP=userSP;
+		ireturn;
+
+	endif;
+
+	i=8;
+	alias buffer R9;
+	while(i<12)do
+		if([inode_id+i]!=-1)then
+			buffer=BUFFER_TABLE+([inode_id+1]%MAX_BUFFER);
+			if(([buffer]==[inode_id+1]) && ([buffer+1]==1))then
+				[buffer+1]=0;//reset dirty bit
+			endif;
+
+			backup;
+			R1=4;
+			R2=[inode_id+1];
+			R3=currPID;
+			call MOD_2;
+			restore;
+		endif;
+		i=i+1;
+	endwhile;
+
+	//invalidate inode entry
+	[inode_id+1]=-1;
+
+	//invalidate root file entry
+	[ROOT_FILE+((inode_id-INODE_TABLE)/2)]=-1;
+
+	i=(inode_id-INODE_TABLE)/16;
+	backup;
+	R1=5;
+	R2=currPID;
+	R3=i;
+	call MOD_0;
+	restore;
+
+	[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]=0;
+	[curr_PT+9]=0;//mode flag
+	SP=userSP;
+	ireturn;
+	
+endif;

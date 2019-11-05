@@ -1,3 +1,67 @@
-//shutdown system call
-breakpoint;
-halt;
+alias currPID R0;
+alias userSP R1;
+alias curr_PT R2;
+alias ret R3;
+alias sysCall R4;
+
+userSP=SP;
+currPID=[SYSTEM_STATUS_TABLE+1];
+curr_PT=PROCESS_TABLE+(16*currPID);
+ret=[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512);
+sysCall=[[PTBR+2*((userSP-5)/512)]*512+((userSP-5)%512)];
+
+//switch to kernel stack
+[curr_PT+13]=userSP;
+SP=[curr_PT+11]*512-1;
+
+//SHUTDOWN sysCall
+if(sysCall==21)then
+	//mode flag
+	[curr_PT+9]=sysCall;
+
+	//check if invoking process is shell and userid is not 1
+	if(([SYSTEM_STATUS_TABLE+1]!=2) ||([curr_PT+3]!=1))then
+		[ret]=-1;
+		[curr_PT+9]=0;
+		SP=userSP;
+		ireturn;
+	endif;
+
+	//write back inode and user table
+	backup;
+	R1=DISK_STORE;
+	R2=currPID;//curr PID
+	R3=59;//page no
+	R4=3;//block no
+	call MOD_4;
+	restore;
+
+	backup;
+	R1=DISK_STORE;
+	R2=currPID;//curr PID
+	R3=60;//page no
+	R4=4;//block no
+	call MOD_4;
+	restore;
+
+	//write back root file
+	backup;
+	R1=DISK_STORE;
+	R2=currPID;//curr PID
+	R3=62;//page no
+	R4=5;//block no
+	call MOD_4;
+	restore;
+
+	//write back Disk free list
+	backup;
+	R1=DISK_STORE;
+	R2=currPID;//curr PID
+	R3=61;//page no
+	R4=2;//block no
+	call MOD_4;
+	restore;
+
+	halt;
+
+endif;

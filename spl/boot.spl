@@ -38,6 +38,10 @@ loadi(49,62);
 loadi(8,21);
 loadi(9,22);
 
+//INT 4
+loadi(10,23);
+loadi(11,24);
+
 //INT 6
 loadi(14,27);
 loadi(15,28);
@@ -194,4 +198,22 @@ while(i<MAX_SEM_COUNT)do
 	i=i+1;
 endwhile;
 
+//initialize file status table
+i=0;
+while(i<MAX_FILE_NUM)do
+	[FILE_STATUS_TABLE+(i*4)]=-1;
+	[FILE_STATUS_TABLE+(i*4)+1]=-1;
+	i=i+1;
+endwhile;
+
+//initialize the buffer table
+i=0;
+while(i<MAX_BUFFER)do
+
+	[BUFFER_TABLE+(i*4)]=-1;//BLOCK NUMBER
+	[BUFFER_TABLE+(i*4)+1]=0;//DIRTY BIT
+	[BUFFER_TABLE+(i*4)+2]=-1;//LOCKING PID
+
+	i=i+1;
+endwhile;
 return;

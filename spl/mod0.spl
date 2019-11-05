@@ -20,6 +20,61 @@ endwhile;
 	[DISK_STATUS_TABLE+4]=currPID;
 
 endif;
+//Acquire inode (4)
+if(funcnum==ACQUIRE_INODE)then
+	alias inode_id R4;
+	alias curr_PT R5;
+
+	curr_PT=PROCESS_TABLE+(currPID*16);
+
+	//wait for inode to be freed by another process
+	while([FILE_STATUS_TABLE+4*(inode_id)]!=-1)do
+		[curr_PT+4]=WAIT_FILE;
+		[curr_PT+5]=inode_id;
+		//call scheduler
+		call MOD_5;
+		restore;
+	endwhile;
+
+	if([INODE_TABLE+(16*inode_id)+1]==-1)then
+		R0=-1;
+		return;
+	endif;
+
+	//lock the inode by setting lock field to pid of current process
+	[FILE_STATUS_TABLE+(4*inode_id)]=currPID;
+	//return 0
+	R0=0;
+	return;
+
+endif;
+
+//Release inode 5
+if(funcnum==RELEASE_INODE)then
+	alias inode_id R3;
+	alias i R4;
+	//if pid given not equal to locking pid in file status table return -1
+	if(currPID!=[FILE_STATUS_TABLE+4*inode_id])then
+		R0=-1;
+		return;
+	endif;
+
+	//free the lock status table corresponding to inode index
+	[FILE_STATUS_TABLE+4*(inode_id)]=-1;
+	//wake up all process waiting for this inode index
+	i=0;
+	while(i<16)do
+		alias curr_PT R5;
+		curr_PT=PROCESS_TABLE+(i*16);
+		if(([curr_PT+4]==WAIT_FILE) && ([curr_PT+5]==inode_id)) then
+			[curr_PT+4]=READY;
+		endif;
+		i=i+1;
+	endwhile;
+	R0=0;
+	return;
+
+endif;
 
 //accquire SEMAPHORE
 if(funcnum==ACQUIRE_SEMAPHORE)then

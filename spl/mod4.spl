@@ -3,6 +3,29 @@ alias currPID R2;
 alias pageNo R3;
 alias blockNo R4;
 
+
+//disk store 1
+if(funcnum==DISK_STORE)then
+		
+		backup;
+		R1=ACQUIRE_DISK;//accquire disk
+		R2=currPID;//pid
+		call MOD_0;
+		restore;
+
+		[DISK_STATUS_TABLE+1]=1;//store
+		[DISK_STATUS_TABLE+2]=pageNo;//pageno
+		[DISK_STATUS_TABLE+3]=blockNo;//blockNo
+		store(pageNo,blockNo);
+		[PROCESS_TABLE+(currPID*16)+4]=WAIT_DISK;
+
+		backup;
+		call MOD_5;
+		restore;
+		
+		return;
+endif;
+
 //terminal write 3
 if(funcnum==TERMINAL_WRITE)then
 	backup;
