@@ -1,0 +1,22 @@
+int main()
+{
+	decl
+		int tmp , Permission;
+		str S;
+	enddecl
+
+	begin
+		tmp = exposcall("Write" , -2 , "Filename");
+		tmp = exposcall("Read" , -1 , S);
+		tmp = exposcall("Write" , -2 , "Permission");
+		tmp = exposcall("Read" , -1 , Permission);
+		tmp = exposcall("Create" , S , Permission);
+
+		if(tmp == 0) then
+			write("File Created");
+		else
+			write("Free_Entry_NA");
+		endif;
+		return 0;
+	end					
+}

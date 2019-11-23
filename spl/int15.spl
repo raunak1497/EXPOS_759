@@ -1,3 +1,5 @@
+//SHUTDOWN sysCall
+
 alias currPID R0;
 alias userSP R1;
 alias curr_PT R2;
@@ -14,13 +16,11 @@ sysCall=[[PTBR+2*((userSP-5)/512)]*512+((userSP-5)%512)];
 [curr_PT+13]=userSP;
 SP=[curr_PT+11]*512-1;
 
-//SHUTDOWN sysCall
-if(sysCall==21)then
 	//mode flag
 	[curr_PT+9]=sysCall;
 
 	//check if invoking process is shell and userid is not 1
-	if(([SYSTEM_STATUS_TABLE+1]!=2) ||([curr_PT+3]!=1))then
+	if(([SYSTEM_STATUS_TABLE+1]!=1) &&([curr_PT+3]!=1))then
 		[ret]=-1;
 		[curr_PT+9]=0;
 		SP=userSP;
@@ -63,5 +63,3 @@ if(sysCall==21)then
 	restore;
 
 	halt;
-
-endif;

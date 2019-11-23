@@ -1,6 +1,7 @@
 alias funcnum R1;
 alias currPID R2;
-alias counter R3;
+alias inode_id R3;
+alias counter R4;
 
 breakpoint;
 
@@ -22,7 +23,6 @@ endwhile;
 endif;
 //Acquire inode (4)
 if(funcnum==ACQUIRE_INODE)then
-	alias inode_id R4;
 	alias curr_PT R5;
 
 	curr_PT=PROCESS_TABLE+(currPID*16);

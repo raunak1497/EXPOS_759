@@ -1,0 +1,38 @@
+int main()
+{
+	decl
+		int tmp , Permission;
+		str S;
+	enddecl
+
+	begin
+		tmp = exposcall("Write" , -2 , "Filename");
+		tmp = exposcall("Read" , -1 , S);
+		tmp = exposcall("Write" , -2 , "Permission");
+		tmp = exposcall("Read" , -1 , Permission);
+		tmp = exposcall("Create" , S , Permission);
+
+		if(tmp == 0) then
+			write("File_Created");
+		else
+			write("Free_Entry_NA");
+		endif;
+
+		tmp = exposcall("Write" , -2 , "Enter action");
+		tmp = exposcall("Read" , -1 , S);
+		tmp = exposcall("Delete" , S);
+
+		if(tmp == 0) then
+			write("File_Deleted");
+		endif;
+
+		if(tmp == -1) then
+			write("Permission");
+		endif;
+
+		if(tmp == -2) then
+			write("File_Open");
+		endif;
+		return 0;
+	end
+}

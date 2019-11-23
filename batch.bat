@@ -3,8 +3,11 @@ load --idle $HOME/myexpos/expl/Samples/idle.xsm
 load --exec $HOME/myexpos/expl/Samples/rw.xsm
 load --exec $HOME/myexpos/expl/Samples/parent.xsm
 load --exec $HOME/myexpos/expl/Samples/child.xsm
+load --exec $HOME/myexpos/expl/Samples/assg23.xsm
+load --exec $HOME/myexpos/expl/Samples/assg23_2.xsm
 load --exhandler ../spl/exhandler.xsm
 load --int=timer ../spl/timer.xsm
+load --int=4 ../spl/int4.xsm
 load --int=6 ../spl/int6.xsm
 load --int=7 ../spl/int7.xsm
 load --int=8 ../spl/int8.xsm
