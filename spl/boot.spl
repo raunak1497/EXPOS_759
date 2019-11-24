@@ -30,6 +30,10 @@ loadi(43,56);
 loadi(44,57);
 loadi(45,58);
 
+//MODULE 3
+loadi(46,59);
+loadi(47,60);
+
 //MODULE 4
 loadi(48,61);
 loadi(49,62);
@@ -41,6 +45,10 @@ loadi(9,22);
 //INT 4
 loadi(10,23);
 loadi(11,24);
+
+//INT 5
+loadi(12,25);
+loadi(13,26)
 
 //INT 6
 loadi(14,27);
