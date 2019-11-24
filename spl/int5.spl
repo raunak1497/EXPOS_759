@@ -21,7 +21,7 @@ if(syscall==2)then
 	alias fileentry R8;
 
 	resource_PT=[curr_PT+11]*512+496;
-	filename= [PTBR + 2 * ((userSP - 4) / 512)] * 512 + (userSP - 4) % 512;
+	filename= [[PTBR + 2 * ((userSP - 4) / 512)] * 512 + (userSP - 4) % 512];
 	//change the mode
 	[curr_PT+9]=syscall;
 
@@ -42,15 +42,16 @@ if(syscall==2)then
 	endif;
 
 	//call open() from file manager module to get open file table entry
-	multipush(R0,R1,R2,R3,R4,R5,R6,R7,R8,R9);
+	multipush(R0,R1,R2,R3,R4,R5,R6,R7);
 	R1=OPEN;
 	R2=filename;
 	call MOD_3;
 	fileentry=R0;
-	multipop(R0,R1,R2,R3,R4,R5,R6,R7,R8,R9);
+	multipop(R0,R1,R2,R3,R4,R5,R6,R7);
 
 	//if filesystem has reached its limit of open files
 	if(fileentry==-2)then
+		multipop(R8);
 		[ret]=-2;
 		[curr_PT+9]=0;
 		SP=userSP;
@@ -60,6 +61,8 @@ if(syscall==2)then
 	//set per process resource table
 	[resource_PT+(2*i)]=FILE;
 	[resource_PT+(2*i)+1]=fileentry;
+
+	multipop(R8);
 
 	[curr_PT+9]=0;
 	[ret]=i;

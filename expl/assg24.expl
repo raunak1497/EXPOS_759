@@ -1,0 +1,29 @@
+decl
+    int i, semid, pid, data, temp, filedis, a;
+    string filename;
+enddecl
+
+int main()
+{
+begin
+    temp = exposcall("Read",-1,filename);
+    filedis = exposcall("Open", filename);
+    write(filedis);
+    
+    if(filedis >= 0) then
+
+	    while(a != -2) do
+	    	a = exposcall("Read" , filedis , data);
+	    	if(a != -2) then
+	    		write(data);
+	    	endif;
+	    endwhile;
+
+	else
+		write("File_Not_Exist");    
+	endif;
+
+   	return 0;
+   end
+
+ }       

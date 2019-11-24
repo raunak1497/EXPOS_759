@@ -187,13 +187,13 @@ if(funcnum==BUFFERED_READ)then
 		call MOD_4;
 		restore;
 
-		//SET block number of buffer tp given disk_block_num
+		//SET block number of buffer to given disk_block_num
 		[buffer_table]=disk_block_num;
 	endif;
 	
 	if(funcnum==BUFFERED_READ)then
 		//copy contents at offset in buffer to given physical memory addr
-		[physical_memory_addr]=[(71+buffer_num)*512+offset];
+		[[PTBR + 2 *(physical_memory_addr/512)] * 512 + physical_memory_addr % 512]=[(71+buffer_num)*512+offset];
 	endif;
 
 	//release buffer in resource manager

@@ -75,7 +75,7 @@ else
 
 	file_table=OPEN_FILE_TABLE+(4*fileentry);
 	lseek=[file_table+2];
-	physical_addr=[[PTBR + 2 * ((content_addr) / 512)] * 512 + ((content_addr) % 512)];
+	//physical_addr=[[PTBR + 2 * ((content_addr) / 512)] * 512 + ((content_addr) % 512)];
 
 	if(inode==INODE_ROOT)then
 		// iff lseek is not equal to ROOT file size
@@ -118,7 +118,7 @@ else
 		R1 = BUFFERED_READ;
 		R2 = diskblock_num;
 		R3 = offset;
-		R4 = physical_addr;
+		R4 = content_addr;
 		call MOD_3; 
 		restore;
 

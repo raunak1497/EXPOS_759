@@ -48,7 +48,7 @@ loadi(11,24);
 
 //INT 5
 loadi(12,25);
-loadi(13,26)
+loadi(13,26);
 
 //INT 6
 loadi(14,27);
@@ -225,4 +225,13 @@ while(i<MAX_BUFFER)do
 
 	i=i+1;
 endwhile;
+alias open_file_table R6;
+i = 0;
+while(i < MAX_OPENFILE_NUM) do
+	open_file_table = OPEN_FILE_TABLE + (4 * i);
+	[open_file_table] = -1;		//inode index
+	[open_file_table + 1] = 0;	//open instance count
+	i = i + 1;
+endwhile;
+
 return;
