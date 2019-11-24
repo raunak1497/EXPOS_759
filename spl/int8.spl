@@ -124,6 +124,10 @@ while(i<512)do
 	if([parent_userarea_page*512+i]==SEMAPHORE)then
 		[SEMAPHORE_TABLE+(4*temp)+1]=[SEMAPHORE_TABLE+(4*temp)+1]+1;
 	endif;
+	//increment open instance account
+	if([parent_userarea_page*512+i]==FILE)then
+		[OPEN_FILE_TABLE+(4*temp)+1]=[OPEN_FILE_TABLE+(4*temp)+1]+1;
+	endif;
 	i=i+2;
 endwhile;
 

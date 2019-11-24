@@ -5,6 +5,52 @@ alias counter R4;
 
 breakpoint;
 
+//accquire buffer
+if(funcnum==1)then
+	alias buffer_num R3;
+	while([BUFFER_TABLE+(4*buffer_num)+2]!=-1)do
+		[PROCESS_TABLE+(16*currPID)+4]=WAIT_BUFFER;
+		[PROCESS_TABLE+(16*currPID)+5]=buffer_num;
+		backup;
+		call MOD_5;
+		restore;
+	endwhile;
+
+	//lock buffer by setting lock pid to curr pid
+	[BUFFER_TABLE+(4*buffer_num)+2]=currPID;
+
+	return;
+
+endif;
+
+//release buffer
+if(funcnum==2)then
+	alias buffer_num R3;
+
+	//IF GIVEN PID IS NOT EQUAL  TO LOCKING PID
+	if(currPID!=[BUFFER_TABLE+(4*buffer_num)+2])then
+		R0=-1;
+		return;
+	endif;
+
+	//free the lock in buffer table in given buffer num entry set locking pid
+	[BUFFER_TABLE+(4*buffer_num)+2]=-1;
+
+	//wake up all process waiting for this buffer
+	counter=0;
+	while(counter<16)do
+		alias process_table R5;
+		process_table=PROCESS_TABLE+(counter*16);
+		if(([process_table+4]==WAIT_BUFFER) && ([process_table+5]==buffer_num))then
+			[process_table+4]=READY;
+		endif;
+		counter=counter+1;
+	endwhile;
+
+	R0=0;
+	return;
+endif;
+
 //accquire disk
 if(funcnum==3)then
 

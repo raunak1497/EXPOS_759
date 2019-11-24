@@ -41,6 +41,15 @@ if(funcNum==2)then
 			restore;
 			[userareaPage*512+i+496]=-1;
 		endif;
+		if([userareaPage*512+i+496]==FILE)then
+			backup;
+			R1=CLOSE;
+			R2=[userareaPage*512+496+i+1];
+			call MOD_3;
+			restore;
+			[userareaPage*512+i+496]=-1;
+		endif;
+		
 		i=i+2;
 	endwhile;
 

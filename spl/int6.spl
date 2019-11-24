@@ -1,30 +1,142 @@
-[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=7;
+alias currPID R0;
+alias userSP R1;
+alias curr_PT R2;
+alias ret R3;
+alias content_addr R4;
+alias fileDesc R5;
+alias resource_table R6;
+alias fileentry R7;
+alias inode R8;
+alias lseek R9;
+alias physical_addr R10;
+alias file_table R11;
+alias diskblock_num R12;
+alias offset R13;
 
-alias userSP R0;
+currPID=[SYSTEM_STATUS_TABLE+1];
 userSP=SP;
+curr_PT=PROCESS_TABLE+(16*currPID);
+ret=[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512);
+content_addr=[[PTBR+2*((userSP-3)/512)]*512+((userSP-3)%512)];
+fileDesc=[[PTBR + 2 * ((userSP - 4) / 512)] * 512 + ((userSP - 4) % 512)];
 
-[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13]=SP;
-SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+11]*512-1;
+[curr_PT+9]=7;
 
-alias fileDescriptor R1;
-fileDescriptor=[[PTBR + 2 * ((userSP - 4) / 512)] * 512 + ((userSP - 4) % 512)];
+[curr_PT+13]=SP;
+SP = [curr_PT + 11] * 512 - 1;
 
-alias wordAddress R3;
-
-if(fileDescriptor!=-1)then
-	[[PTBR + 2 * ((userSP - 1) / 512)] * 512 + ((userSP - 1) % 512)]=-1;
-else
-	wordAddress=[[PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512)];
-	multipush(R0,R1,R2,R3);
+if(fileDesc==-1)then
+	//read from terminal
+	backup;
 	R1=4;
-	R2=[SYSTEM_STATUS_TABLE+1];
-	R3=wordAddress;
-	//breakpoint;
+	R2=currPID;
+	R3=content_addr;
 	call MOD_4;
-	multipop(R0,R1,R2,R3);
-	[[PTBR + 2 * ((userSP - 1) / 512)] * 512 + ((userSP - 1) % 512)]= 0;
-endif;
-[PROCESS_TABLE+[SYSTEM_STATUS_TABLE+1]*16+9]=0;
-SP=[PROCESS_TABLE+([SYSTEM_STATUS_TABLE+1]*16)+13];
-ireturn;
+	restore;
+else
+	//read from file
+	//if fileDesc is invalid
+	if((fileDesc<0) || (fileDesc>7))then
+		[ret]=-1;
+		[curr_PT+9]=0;
+		SP=userSP;
+		ireturn;
+	endif;
 
+	resource_table=[curr_PT+11]*512+496;
+
+	//if identifier is not file
+	if([resource_table+(2*fileDesc)]!=FILE)then
+		[ret]=-1;
+		[curr_PT+9]=0;
+		SP=userSP;
+		ireturn;
+	endif;
+
+	fileentry=[resource_table+(2*fileDesc)+1];
+	inode=[OPEN_FILE_TABLE+(4*fileentry)];
+
+	//accquire inode in resource manager
+	backup;
+	R1=ACQUIRE_INODE;
+	R2=currPID;
+	R3=inode;
+	call MOD_0;
+
+	//if acquiring fails
+	if(R0==-1)then
+		restore;
+		[ret]=-1;
+		[curr_PT+9]=0;
+		SP=userSP;
+		ireturn;
+	endif;
+	restore;
+
+	file_table=OPEN_FILE_TABLE+(4*fileentry);
+	lseek=[file_table+2];
+	physical_addr=[[PTBR + 2 * ((content_addr) / 512)] * 512 + ((content_addr) % 512)];
+
+	if(inode==INODE_ROOT)then
+		// iff lseek is not equal to ROOT file size
+		if(lseek==480)then
+			backup;
+			R1=RELEASE_INODE;
+			R2=currPID;
+			R3=inode;
+			call MOD_0;
+			restore;
+			[ret]=-2;
+			[curr_PT+9]=0;
+			SP=userSP;
+			ireturn;
+		endif;
+
+		[physical_addr]=[ROOT_FILE+lseek];
+
+		[file_table+2]=[file_table+2]+1;
+
+	else
+		if(lseek==[INODE_TABLE+(16*inode)+2])then
+			backup;
+			R1=RELEASE_INODE;
+			R2=currPID;
+			R3=inode;
+			call MOD_0;
+			restore;
+			[ret]=-2;
+			[curr_PT+9]=0;
+			SP=userSP;
+			ireturn;
+		endif;
+
+		diskblock_num = [INODE_TABLE + (16 * inode) + 8 + (lseek / 512)];
+		offset = lseek % 512;
+
+		//read data from file buffer by calling buffered_read() in file_manager
+		backup;
+		R1 = BUFFERED_READ;
+		R2 = diskblock_num;
+		R3 = offset;
+		R4 = physical_addr;
+		call MOD_3; 
+		restore;
+
+		[file_table+2]=[file_table+2]+1;
+	endif;
+
+	//release_inode()
+	backup;
+	R1 = RELEASE_INODE;
+	R2 = currPID;
+	R3 = inode;
+	call MOD_0;
+	restore;
+endif;
+
+//sucessful
+[ret]=0;
+[curr_PT+9]=0;
+SP=userSP;
+
+ireturn;

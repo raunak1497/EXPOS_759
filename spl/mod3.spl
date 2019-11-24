@@ -1,0 +1,211 @@
+alias funcnum R1;
+
+//open file 
+if(funcnum==OPEN)then
+	alias filename R2;
+	alias i R3;
+	alias inode R4;
+	alias inode_entry R5;
+	alias fileentry R6;
+
+	//Ssearch inode table for file
+	inode=-1;
+	i=0;
+	while(i<MAX_FILE_NUM)do
+		if([INODE_TABLE+(i*16)+1]==filename)then
+			inode=i;
+			break;
+		endif;
+		i=i+1;
+	endwhile;
+
+	//if entry found
+	if(inode==-1)then
+		R0=-1;
+		return;
+	endif;
+
+	//accquire inode by calling accquire inode
+	backup;
+	R1=ACQUIRE_INODE;
+	R2=[SYSTEM_STATUS_TABLE+1];
+	R3=inode;
+	call MOD_0;
+	if(R0==-1)then
+		restore;
+		R0=-1;
+		return;
+	endif;
+	restore;
+
+	inode_entry=INODE_TABLE+(16*inode);
+
+	//if file of exec type return -1
+	if([inode_entry]==EXEC)then
+		backup;
+		R1=RELEASE_INODE;
+		R2=[SYSTEM_STATUS_TABLE+1];
+		R3=inode;
+		call MOD_0;
+		restore;
+		//return
+		R0=-1;
+		return;
+	endif;
+
+	//search open file list in open file table
+	i=0;
+	fileentry=-1;
+	while(i<MAX_OPENFILE_NUM)do
+		//check inode index field
+		if([OPEN_FILE_TABLE+(4*i)==-1])then
+			fileentry=i;
+			break;
+		endif;
+		i=i+1;
+	endwhile;
+
+	//if no free open file entry
+	if(fileentry==-1)then
+		backup;
+		R1=RELEASE_INODE;
+		R2=[SYSTEM_STATUS_TABLE+1];
+		R3=inode;
+		call MOD_0;
+		restore;
+		R0=-2;
+		return;
+	endif;
+
+	fileentry=OPEN_FILE_TABLE+(4*fileentry);
+
+	//if filename is root set inode id to inode root
+	if(filename=="root")then
+		[fileentry]=INODE_ROOT;
+	else
+		//otherwise if opened for first time make it to 1
+		if([FILE_STATUS_TABLE+(4*inode)+1]==-1)then
+			[FILE_STATUS_TABLE+(4*inode)+1]=1;
+		else
+			[FILE_STATUS_TABLE+(4*inode)+1]=[FILE_STATUS_TABLE+(4*inode)+1]+1;
+		endif;
+
+		[fileentry]=inode;
+
+	endif;
+		//set inode index field to inode id found above
+		[fileentry+1]=1;
+		[fileentry+2]=0;
+
+		//release inode()
+		backup;
+		R1=RELEASE_INODE;
+		R2=[SYSTEM_STATUS_TABLE+1];
+		R3=inode;
+		call MOD_0;
+		restore;
+
+
+		R0=(fileentry-OPEN_FILE_TABLE)/4;
+		return;
+endif;
+
+//close Syscall
+if(funcnum==CLOSE)then
+	alias fileentry R2;
+	alias inode R3;
+	alias openfile R4;
+	alias file_status R5;
+
+	openfile=OPEN_FILE_TABLE+(4*openfile);
+	inode=[openfile];
+	file_status=FILE_STATUS_TABLE+(4*inode);
+
+	//decrement open instance 
+	[openfile+1]=[openfile+1]-1;
+
+	//if open instance count 
+	if([openfile+1]==0)then
+		[openfile]=-1; //inode_idx
+		[openfile+1]=-1; //open instance count
+		[openfile+2]=-2; //lseek
+		[openfile+3]=-1; //unused
+
+		if(inode!=INODE_ROOT)then
+			[file_status+1]=[file_status+1]-1;
+		endif;
+
+		if([file_status+1]==0)then
+			[file_status+1]=-1;
+		endif;
+
+	endif;
+	return;
+endif;
+
+//Buffered READ 
+if(funcnum==BUFFERED_READ)then
+	alias disk_block_num R2;
+	alias offset R3;
+	alias physical_memory_addr R4;
+	alias buffer_num R5;
+	alias buffer_table R6;
+
+	buffer_num=disk_block_num%4;
+	buffer_table=BUFFER_TABLE+(4*buffer_num);
+
+	//accquire buffer in resource manager
+	backup;
+	R1=ACQUIRE_BUFFER;
+	R2=[SYSTEM_STATUS_TABLE+1];
+	R3=buffer_num;
+	call MOD_0;
+	restore;
+
+	//if buffer is allocated by another disk block
+	if([buffer_table]!=disk_block_num)then
+		//check dirty bits for changes to be copied back in disk
+		if([buffer_table+1]==1)then
+			backup;
+			R1=DISK_STORE;
+			R2=[SYSTEM_STATUS_TABLE+1];
+			R3=buffer_num+71;
+			R4=[buffer_table];
+			call MOD_4;
+			restore;
+
+			[buffer_table+1]=0;
+			//buffer is clean now denoted by buffer num 
+		endif;
+
+		//load buffer with given disk_block_num
+		backup;
+		R1=DISK_LOAD;
+		R4=disk_block_num;
+		R2=[SYSTEM_STATUS_TABLE+1];
+		R3=buffer_num+71;
+		call MOD_4;
+		restore;
+
+		//SET block number of buffer tp given disk_block_num
+		[buffer_table]=disk_block_num;
+	endif;
+	
+	if(funcnum==BUFFERED_READ)then
+		//copy contents at offset in buffer to given physical memory addr
+		[physical_memory_addr]=[(71+buffer_num)*512+offset];
+	endif;
+
+	//release buffer in resource manager
+	backup;
+	R1=RELEASE_BUFFER;
+	R2=[SYSTEM_STATUS_TABLE+1];
+	R3=buffer_num;
+	call MOD_0;
+	restore;
+
+	return;
+
+endif;
+
+return;

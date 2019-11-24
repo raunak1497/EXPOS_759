@@ -1,0 +1,115 @@
+alias currPID R0;
+alias userSP R1;
+alias curr_PT R2;
+alias ret R3;
+alias syscall R4;
+alias i R5;
+
+
+userSP = SP;
+currPID = [SYSTEM_STATUS_TABLE + 1];
+curr_PT = PROCESS_TABLE + (16 * currPID);
+ret = [PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512;
+syscall = [[PTBR + 2 * ((userSP - 5) / 512)] * 512 + (userSP - 5) % 512];
+[curr_PT + 13] = SP;
+SP = [curr_PT + 11] * 512 - 1;
+
+//Open Syscall 
+if(syscall==2)then
+	alias resource_PT R6;
+	alias filename R7;
+	alias fileentry R8;
+
+	resource_PT=[curr_PT+11]*512+496;
+	filename= [PTBR + 2 * ((userSP - 4) / 512)] * 512 + (userSP - 4) % 512;
+	//change the mode
+	[curr_PT+9]=syscall;
+
+//find free per process resource table
+	i=0;
+	while(i<8)do
+		if([resource_PT+(2*i)]==-1)then
+			break;
+		endif;
+		i=i+1;
+	endwhile;
+
+	if(i==8)then
+		[ret]=-3;
+		[curr_PT+9]=0;
+		SP=userSP;
+		ireturn;
+	endif;
+
+	//call open() from file manager module to get open file table entry
+	multipush(R0,R1,R2,R3,R4,R5,R6,R7,R8,R9);
+	R1=OPEN;
+	R2=filename;
+	call MOD_3;
+	fileentry=R0;
+	multipop(R0,R1,R2,R3,R4,R5,R6,R7,R8,R9);
+
+	//if filesystem has reached its limit of open files
+	if(fileentry==-2)then
+		[ret]=-2;
+		[curr_PT+9]=0;
+		SP=userSP;
+		ireturn;
+	endif; 
+
+	//set per process resource table
+	[resource_PT+(2*i)]=FILE;
+	[resource_PT+(2*i)+1]=fileentry;
+
+	[curr_PT+9]=0;
+	[ret]=i;
+	SP=userSP;
+	ireturn;
+
+endif;
+
+//Close Syscall
+if(syscall==3)then
+	alias resource_PT R6;
+	alias fileentry R7;
+	alias filedisc R8;
+
+	resource_PT=[curr_PT+11]*512+496;
+	[curr_PT+9]=syscall;
+	filedisc=[[PTBR+2*((userSP-4)/512)]*512+(userSP-4)%512];
+	
+	if((filedisc<0) || (filedisc>7))then
+		[ret]=-1;
+		[curr_PT+9]=0;
+		SP=userSP;
+		ireturn;
+	endif;
+
+	//if file disc does not belong to file
+	if(([resource_PT+(2*filedisc)]!=FILE) || ([resource_PT+(2*i)]==-1))then
+		[ret]=-1;
+		[curr_PT+9]=0;
+		SP=userSP;
+		ireturn;
+	endif;
+
+	//get open file table entry
+	fileentry=[resource_PT+(2*filedisc)+1];
+
+	//call close() function to close the file
+	backup;
+	R1=CLOSE;
+	R2=fileentry;
+	call MOD_3;
+	restore;
+
+	//invalidate per process resource table entry
+	[resource_PT+(2*filedisc)]=-1;
+	[resource_PT+(2*filedisc)+1]=-1;
+
+	[ret]=0;
+	[curr_PT+9]=0;
+	SP=userSP;
+	ireturn;
+	 
+endif;
